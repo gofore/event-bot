@@ -11,3 +11,6 @@ If commands or actions are formed based on this information, the Bolt Lambda wil
 
 #Techs used
 Slack API, Slack Bolt, Node, AWS, MySQL
+
+#Work Estimate
+5-10 working days with incremental additions when AWS is setup - start of another project might come suddenly

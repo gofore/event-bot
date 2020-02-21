@@ -15,10 +15,7 @@ const db = new DatabaseConnection();
 // db.voteFor(eventName, Math.random(0, Number.MAX_SAFE_INTEGER), 12, (results) => {
 //     console.log('voted succesfully');
 // })
-//db.registerTeam('hw', 'Voittajat', ()=>{});
-// db.registerTeam('e15', 'Testaajat', (results)=>{
-//     console.log(results);
-// });
+db.registerTeam('hw', 'Myyrät', ()=>{});
 
 db.requestAllVotes('e15', (results) => {
     results.forEach(element => {
@@ -39,11 +36,11 @@ db.requestAllVotes('e15', (results) => {
 //     });
 // })
 
-// db.requestEventLocation('hw', (results) => {
-//     results.forEach(element => {
-//         console.log(element);
-//     });
-// })
+db.requestEventLocation('hw', (results) => {
+    results.forEach(element => {
+        console.log(element);
+    });
+})
 // db.saveScore('hw', 'aivan jotain muuta', 'Kakkoset', 222, (result) => {
 //     console.log('score saved!');
 // });

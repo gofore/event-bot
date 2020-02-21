@@ -156,18 +156,41 @@ exports.registerEvents = (app) => {
         sayTimeUntil(say, timeUntil);
       },
       help: "[end] or [end _location_] can be used to showcase ending time of event for a certain travel destination if provided"
+    },
+    {
+      directMention: true,
+      query: /help/,
+      lambda:
+      async ({message, say, context}) => {
+        helpMentioned(say, this.registereableMessageEvents);
+      },
+      help: "[help] informs user with all the possible commands available."
     }
 ];
+  this.registereableMessageEvents = registereableMessageEvents;
+
+
+  app.event('app_mention', async ({event, context, say}) => {
+    console.log(say);
+    const message = event.text;
+    const sayFunc = (msg) => {
+      const result = await app.client.chat.postMesssage({
+        token: context.botToken,
+        channel: event.channel,
+        text: msg
+      });
+    };
+
+    registereableMessageEvents.forEach(command => {
+      if(message.match(command.query)){
+        event.lambda({message, say: sayFunc});
+      }
+    })
+  });
 
   registereableMessageEvents.forEach(event => {
     if(event.directMention){
       app.message(directMention(), event.query, event.lambda);
-
-      // app.message(event.query, async (object) => {
-      //   if(object.context)
-
-      //   event.lambda(object);
-      // })
     }
     else{
       app.message(event.query, event.lambda);
@@ -182,15 +205,12 @@ exports.registerEvents = (app) => {
   });
 
   homePageRegistering(app);
-  
-  scoreCommand(app);
 }
 
 
 function helpMentioned(app, events) {
   let helpText = "My job is to inform you about event details and to allow participating in different event activities.\n";
-  //helpText += 
-  
+
   events.forEach(element => {
     if(element.help){
       helpText += element.help + '\n';
@@ -198,10 +218,7 @@ function helpMentioned(app, events) {
   });
 
   helpText += "Currently I am configured to answer to @my-name commands only.\n"
-
-  app.message(directMention(), /help/, async ({message, say, context}) => {
-    say(helpText);
-  });
+  say(helpText);
 }
 
 

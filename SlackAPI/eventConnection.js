@@ -4,62 +4,64 @@ const eventName = "hw";
 
 const connection = new DatabaseConnection();
 
+//TODO: a way to make the functions more like each other without doing await in each function since the caller can do that as well.
 exports.timeUntilEventEnd = (eventName, optionalLocation) => {
-    return await connection.timeUntilEventEnd(eventName, optionalLocation);
+    return connection.timeUntilEventEnd(eventName, optionalLocation);
 };
 
 
-exports.timeUntilEvent = function(eventName){
-    return new Date('2020-03-30T16:00:00');
+exports.timeUntilEvent = (eventName) => {
+    return connection.timeUntilEvent(eventName);
 };
 
 
-exports.saveScore = function(eventName, gameName, teamName, score){
-    if(!exports.doesTeamExist(eventName, teamName)){
-        exports.registerTeam(eventName, teamName);
+exports.saveScore = async (eventName, gameName, teamName, score) => {
+    const exists = await exports.doesTeamExist(eventName, teamName); 
+    if(!exists){
+        await exports.registerTeam(eventName, teamName);
     }
 
-    return true;
+    return connection.saveScore(eventN, gameName, teamName, score);
 };
 
 
 exports.voteImage = (eventName, imageNumber) => {
-    return true;
+    return connection.voteFor(eventName, 123123, imageNumber);
 }
 
 
 exports.requestSoonestEvent = (date) => {
-    return "hw";
+    return connection.findSoonestEvent();
 };
 
 
 exports.locationOfEvent = (eventName) => {
-    return 'https://goo.gl/maps/QoBwqdFx8rqe2Gpb9';
+    return connection.requestEventLocation(eventName);
 };
 
 
 
-exports.requestTopScore = function(eventName, gameName, scoreFor){
-    return [ { name: "BestTeam", score:124 }, { name:"AlmostBest", score:122} ];
-};
+exports.requestTopScore = async function(eventName, gameName, scoreFor){
+    const scores = await connection.requestTopScoreFor(eventName, gameName);
+    return scores.slice(0, scoreFor - 1);
+}
 
-
-exports.doesTeamExist = (eventName, teamName) => {
-    return false;
+exports.doesTeamExist = async (eventName, teamName) => {
+    return await connection.findTeamsWithName(eventName, teamName).length > 0;
 };
 
 
 exports.registerTeam = (eventName, teamName) => {
-
-    return true;
+    return connection.registerTeam(eventName, teamName);
 };
 
 
 exports.requestAllGames = function(eventName){
-    return [ {name:"funGame"  }, { name: "Quidditch"} ];
+    return connection.requestAllGames(eventName);
 };
 
 
 exports.requestEventName = function(){
+    //TODO: this is not fully developed to work proper
     return eventName;
 };

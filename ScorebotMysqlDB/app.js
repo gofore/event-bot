@@ -15,9 +15,9 @@ const db = new DatabaseConnection();
 // db.voteFor(eventName, Math.random(0, Number.MAX_SAFE_INTEGER), 12, (results) => {
 //     console.log('voted succesfully');
 // })
-db.registerTeam('hw', 'Myyrät', ()=>{});
+db.registerTeam('hw', 'Myyrät').then(()=>{});
 
-db.requestAllVotes('e15', (results) => {
+db.requestAllVotes('e15').then(results => {
     results.forEach(element => {
         console.log(element);
     });
@@ -36,7 +36,7 @@ db.requestAllVotes('e15', (results) => {
 //     });
 // })
 
-db.requestEventLocation('hw', (results) => {
+db.requestEventLocation('hw').then((results) => {
     results.forEach(element => {
         console.log(element);
     });
@@ -63,7 +63,7 @@ db.requestEventLocation('hw', (results) => {
 //         console.log(gameScore);
 //     });
 // });
-db.findSoonestEvent((results) => {
+db.findSoonestEvent().then((results) => {
     results.forEach(gameScore => {
         console.log(gameScore);
     });

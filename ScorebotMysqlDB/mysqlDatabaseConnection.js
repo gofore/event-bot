@@ -125,6 +125,16 @@ exports.DatabaseConnection = class DatabaseConnection{
     }
 
 
+    requestAllTeams = (eventName) => {
+        return this.doQuery(`
+            SELECT t.team_id, t.team_name
+            FROM teams t
+            INNER JOIN events e
+                USING (event_id)
+            WHERE e.event_name = ?`, [eventName]);
+    }
+
+
 
     findTeamsWithName = (eventName, teamName) => {
         return this.doQuery(`

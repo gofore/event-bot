@@ -71,14 +71,14 @@ db.registerTeam(eventName, 'Huuhkajat').then(result => {
 //     console.log(result);
 // });
 
-// db.saveScore('hw', 'speden spelit', 'Testaajat', 15).then((result) => {
-//     console.log(result);
-// });
-
-
-db.saveScoreById('hw', 1, 2, 111).then(result => {
+db.saveScore('hw', 'speden spelit', 'Testaajat', 999).then((result) => {
     console.log(result);
-})
+});
+
+
+// db.saveScoreById('hw', 1, 2, 111).then(result => {
+//     console.log(result);
+// })
 
 // db.saveScore('speden spelit', 'Kakkoset', 240, (result) => {
 //     console.log('score saved!');

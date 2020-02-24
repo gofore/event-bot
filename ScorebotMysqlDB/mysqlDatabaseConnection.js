@@ -87,7 +87,8 @@ exports.DatabaseConnection = class DatabaseConnection{
             FROM team t, game g
             INNER JOIN event e
                 USING (event_id)
-            WHERE t.team_name = ? AND g.game_name = ? AND e.event_name = ?`, [score, teamName, gameName, eventName]);
+            WHERE t.team_name = ? AND g.game_name = ? AND e.event_name = ?
+                ON DUPLICATE KEY UPDATE score = VALUES(score)`, [score, teamName, gameName, eventName]);
     }
     
 

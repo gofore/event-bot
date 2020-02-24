@@ -4,6 +4,10 @@ const eventName = 'hw';
 
 const db = new DatabaseConnection();
 
+const randomInt = (min, max) => {
+    return min + Math.floor(Math.random() * max);
+};
+
 // db.checkIfTeamExists(eventName, 'Mörrit', (results, fields) => {
 //     if(results.length === 1){
 //         console.log(`Team ${results[0].team_name} was found`);
@@ -36,11 +40,11 @@ const db = new DatabaseConnection();
 //     });
 // })
 
-db.requestEventLocation('hw').then((results) => {
-    results.forEach(element => {
-        console.log(element);
-    });
-})
+// db.requestEventLocation('hw').then((results) => {
+//     results.forEach(element => {
+//         console.log(element);
+//     });
+// })
 
 db.requestAllTeams('hw').then(results => {
     results.forEach(element => {
@@ -53,31 +57,60 @@ db.requestAllGames('hw').then(results => {
     results.forEach(element => {
         console.log(element);
     });
-}) ;
+});
 // db.saveScore('hw', 'aivan jotain muuta', 'Kakkoset', 222, (result) => {
 //     console.log('score saved!');
 // });
 
-// db.saveScore('speden spelit', 'Viiskytä Viis', 11, (result) => {
-//     console.log('score saved!');
+db.registerTeam(eventName, 'Testaajat').then(result => {
+    console.log(result);
+})
+
+db.registerTeam(eventName, 'Muuntajat').then(result => {
+    console.log(result);
+})
+
+
+// db.saveScore('hw', 'Speden spelit', 'Huuhkajat', 195).then((result) => {
+//     console.log(result);
 // });
 
-// db.saveScore('e15', 'musavisa', 'Testaajat', 8, (result) => {
-//     console.log('score saved!');
-// });
+db.requestAllCategories(eventName).then(result => {
+    result.forEach(element => {
+        console.log(element);
+    });
+
+    const randomCategory = result[randomInt(0, result.length)];
+    return db.voteById(randomCategory.category_id, randomInt(1, 20), randomInt(1, 20));
+}).then(result => {
+    // console.log(result);
+});
 
 
-// db.saveScore('speden spelit', 'Kakkoset', 240, (result) => {
-//     console.log('score saved!');
-// });
- 
-// db.requestTopScoreFor('hw', 'speden spelit', (results) => {
-//     results.forEach(gameScore => {
-//         console.log(gameScore);
-//     });
-// });
-db.findSoonestEvent().then((results) => {
+
+db.saveScore('hw', 'speden spelit', 'Huuhkajat', randomInt(1, 1500)).then((result) => {
+    console.log(result);
+});
+
+
+db.saveScoreById('hw', 1, 3, randomInt(1, 1500)).then(result => {
+    console.log(result);
+})
+
+
+db.requestTopScoreFor('hw', 'speden spelit').then(results => {
     results.forEach(gameScore => {
         console.log(gameScore);
     });
 });
+
+db.requestAllTopScores(eventName).then(results => {
+    results.forEach(scorePackage => {
+        console.log(scorePackage);
+    });
+});
+// db.findSoonestEvent().then((results) => {
+//     results.forEach(gameScore => {
+//         console.log(gameScore);
+//     });
+// });

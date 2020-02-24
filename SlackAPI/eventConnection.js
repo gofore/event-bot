@@ -65,3 +65,8 @@ exports.requestEventName = function(){
     //TODO: this is not fully developed to work proper
     return eventName;
 };
+
+
+exports.requestAllTeams = function(eventName){
+    return connection.requestAllTeams(eventName);
+}

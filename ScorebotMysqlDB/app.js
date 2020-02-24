@@ -36,11 +36,11 @@ const db = new DatabaseConnection();
 //     });
 // })
 
-db.requestEventLocation('hw').then((results) => {
-    results.forEach(element => {
-        console.log(element);
-    });
-})
+// db.requestEventLocation('hw').then((results) => {
+//     results.forEach(element => {
+//         console.log(element);
+//     });
+// })
 
 db.requestAllTeams('hw').then(results => {
     results.forEach(element => {
@@ -53,31 +53,44 @@ db.requestAllGames('hw').then(results => {
     results.forEach(element => {
         console.log(element);
     });
-}) ;
+});
 // db.saveScore('hw', 'aivan jotain muuta', 'Kakkoset', 222, (result) => {
 //     console.log('score saved!');
 // });
 
-// db.saveScore('speden spelit', 'Viiskytä Viis', 11, (result) => {
-//     console.log('score saved!');
+db.registerTeam(eventName, 'Testaajat').then(result => {
+    console.log(result);
+})
+
+db.registerTeam(eventName, 'Huuhkajat').then(result => {
+    console.log(result);
+})
+
+
+// db.saveScore('hw', 'Speden spelit', 'Huuhkajat', 195).then((result) => {
+//     console.log(result);
 // });
 
-// db.saveScore('e15', 'musavisa', 'Testaajat', 8, (result) => {
-//     console.log('score saved!');
+// db.saveScore('hw', 'speden spelit', 'Testaajat', 15).then((result) => {
+//     console.log(result);
 // });
 
+
+db.saveScoreById('hw', 1, 2, 111).then(result => {
+    console.log(result);
+})
 
 // db.saveScore('speden spelit', 'Kakkoset', 240, (result) => {
 //     console.log('score saved!');
 // });
  
-// db.requestTopScoreFor('hw', 'speden spelit', (results) => {
-//     results.forEach(gameScore => {
-//         console.log(gameScore);
-//     });
-// });
-db.findSoonestEvent().then((results) => {
+db.requestTopScoreFor('hw', 'speden spelit').then(results => {
     results.forEach(gameScore => {
         console.log(gameScore);
     });
 });
+// db.findSoonestEvent().then((results) => {
+//     results.forEach(gameScore => {
+//         console.log(gameScore);
+//     });
+// });

@@ -15,6 +15,11 @@ exports.timeUntilEvent = (eventName) => {
 };
 
 
+exports.saveScoreById = async (eventName, gameId, teamId, score) => {
+    return connection.saveScoreById(eventName, gameId, teamId, score);
+}
+
+
 exports.saveScore = async (eventName, gameName, teamName, score) => {
     const exists = await exports.doesTeamExist(eventName, teamName); 
     if(!exists){

@@ -11,7 +11,7 @@ exports.DatabaseConnection = class DatabaseConnection{
             // ssl: 'fetchThisStill',
             user: 'dev',
             password: '',
-            database: 'event_db'
+            database: 'event_db_singular'
         });
 
         this.connection.query[promisify.custom] = (query, queryParams) => new Promise((resolve, reject) => {
@@ -35,8 +35,8 @@ exports.DatabaseConnection = class DatabaseConnection{
 
     findSoonestEvent(){
         return this.doQuery(`
-            SELECT event_name, starting_date 
-            FROM events
+            SELECT event_name, long_name, starting_date 
+            FROM event
             ORDER BY starting_date ASC`, []);
     }
 
@@ -44,45 +44,58 @@ exports.DatabaseConnection = class DatabaseConnection{
     queryTimeUntilEventEnd = (eventName, optionalLocation) => {
         if(Boolean(optionalLocation)){
             return this.doQuery(`
-                SELECT e.e
-                FROM endings e
-                INNER JOIN events ev
+                SELECT e
+                FROM ending e
+                INNER JOIN event ev
                     USING (event_id)
-                WHERE events.event_name = ? AND e.location = ?`,[eventName, optionalLocation]);
+                WHERE ev.event_name = ? AND e.location = ?`,[eventName, optionalLocation]);
         }
         else{
             return this.doQuery(`
                 SELECT e.e
-                FROM endings e
-                INNER JOIN events ev
+                FROM ending e
+                INNER JOIN event ev
                     USING (event_id)
-                WHERE events.event_name = ? AND e.location = ''`,[eventName]);
+                WHERE ev.event_name = ? AND e.location = ''`,[eventName]);
         }
     };
     
 
     queryDateFor = (eventName) => {
-        return this.doQuery("SELECT e.starting_date FROM events e WHERE e.event_name = ?", [eventName]);
+        return this.doQuery("SELECT e.starting_date FROM event e WHERE e.event_name = ?", [eventName]);
     }
     
+
+    saveScoreById = (eventName, gameId, teamId, score) => {
+        return this.doQuery(`
+            INSERT INTO team_game (team_id, game_id, score)
+            SELECT ?, ?, ?
+            FROM game g, team t            
+            INNER JOIN event e
+                USING (event_id)
+            WHERE e.event_name = ?
+                ON DUPLICATE KEY UPDATE score = VALUES(score)`, [teamId, gameId, score, eventName, score]);
+
+    }
+
 
     saveScore = (eventName, gameName, teamName, score) => {
         //TODO: check team existance before trying to add?
         return this.doQuery(`
-            INSERT INTO teams_games (team_id, game_id, score)
+            INSERT INTO team_game (team_id, game_id, score)
             SELECT t.team_id, g.game_id, ?
-            FROM teams t, games g
-            INNER JOIN events e
+            FROM team t, game g
+            INNER JOIN event e
                 USING (event_id)
-            WHERE t.team_name = ? AND g.name = ? AND e.event_name = ?`, [score, teamName, gameName, eventName]);
+            WHERE t.team_name = ? AND g.game_name = ? AND e.event_name = ?`, [score, teamName, gameName, eventName]);
     }
     
 
     voteFor = (eventName, slackId, imageNumber) => {
         return this.doQuery(`
-            INSERT INTO votes (event_id, slack_id, vote)
+            INSERT INTO vote (event_id, slack_id, vote)
             SELECT event_id, ?, ?
-            FROM events
+            FROM event
             WHERE event_name = ?`, [slackId, imageNumber, eventName]);
     }
 
@@ -90,8 +103,8 @@ exports.DatabaseConnection = class DatabaseConnection{
     requestAllVotes = (eventName) => {
         return this.doQuery(`
             SELECT v.vote, count(*) as NUM
-            FROM votes v            
-            INNER JOIN events e
+            FROM vote v            
+            INNER JOIN event e
                 USING(event_id)
             WHERE e.event_name = ?
             GROUP BY vote
@@ -102,12 +115,12 @@ exports.DatabaseConnection = class DatabaseConnection{
 
     registerTeam = (eventName, teamName) => {
         return this.doQuery(`
-            INSERT INTO teams (event_id, team_name)
-            SELECT * FROM (SELECT event_id, ? FROM events WHERE event_name = ?) AS tmp
+            INSERT INTO team (event_id, team_name)
+            SELECT * FROM (SELECT event_id, ? FROM event WHERE event_name = ?) AS tmp
             WHERE NOT EXISTS (
                 SELECT team_name
-                FROM teams
-                INNER JOIN events e
+                FROM team
+                INNER JOIN event e
                     USING(event_id)
                 WHERE team_name = ? AND event_name = ?
             ) LIMIT 1`, [teamName, eventName, teamName, eventName]);
@@ -117,9 +130,9 @@ exports.DatabaseConnection = class DatabaseConnection{
 
     requestAllGames = (eventName) => {
         return this.doQuery(`
-            SELECT g.game_id, g.name
-            FROM games g
-            INNER JOIN events e USING (event_id)
+            SELECT g.game_id, g.game_name
+            FROM game g
+            INNER JOIN event e USING (event_id)
             WHERE e.event_name = ?
             `, [eventName]);
     }
@@ -128,8 +141,8 @@ exports.DatabaseConnection = class DatabaseConnection{
     requestAllTeams = (eventName) => {
         return this.doQuery(`
             SELECT t.team_id, t.team_name
-            FROM teams t
-            INNER JOIN events e
+            FROM team t
+            INNER JOIN event e
                 USING (event_id)
             WHERE e.event_name = ?`, [eventName]);
     }
@@ -139,8 +152,8 @@ exports.DatabaseConnection = class DatabaseConnection{
     findTeamsWithName = (eventName, teamName) => {
         return this.doQuery(`
             SELECT *
-            FROM teams t
-            INNER JOIN events e
+            FROM team t
+            INNER JOIN event e
                ON t.event_id = e.event_id
                    AND e.event_name = ?
             WHERE t.team_name = ?`, [eventName, teamName]);
@@ -149,16 +162,16 @@ exports.DatabaseConnection = class DatabaseConnection{
     
     requestTopScoreFor = (eventName, gameName) => {
         return this.doQuery(`
-            SELECT t.team_name, g.name, tg.score
-            FROM teams_games tg
-            INNER JOIN teams t
+            SELECT t.team_name, g.game_name, tg.score
+            FROM team_game tg
+            INNER JOIN team t
                 ON t.team_id = tg.team_id
-            INNER JOIN games g
+            INNER JOIN game g
                 ON g.game_id = tg.game_id
-            INNER JOIN events e
+            INNER JOIN event e
                 ON e.event_id = g.event_id
                 AND e.event_id = t.event_id
-            WHERE g.name = ? AND e.event_name = ?
+            WHERE g.game_name = ? AND e.event_name = ?
             ORDER BY tg.score DESC
         `, [gameName, eventName])
     }
@@ -166,13 +179,13 @@ exports.DatabaseConnection = class DatabaseConnection{
     
     requestAllTopScores = function(eventName){
         return this.doQuery(`
-            SELECT t.team_name, g.name, tg.score
-            FROM teams_games tg
-            INNER JOIN teams t
+            SELECT t.team_name, g.game_name, tg.score
+            FROM team_game tg
+            INNER JOIN team t
                 ON t.team_id = tg.team_id
-            INNER JOIN games g
+            INNER JOIN game g
                 ON g.game_id = tg.game_id
-            INNER JOIN events e
+            INNER JOIN event e
                 ON e.event_id = g.event_id
                 AND e.event_id = t.event_id
             WHERE e.event_name = ?
@@ -184,12 +197,12 @@ exports.DatabaseConnection = class DatabaseConnection{
     requestCorrectAnswerSetFor = (eventName, gameName,) => {
         return this.doQuery(`
             SELECT json_answerset
-            FROM correct_answers ca
-            INNER JOIN games g
+            FROM correct_answer ca
+            INNER JOIN game g
                 ON ca.game_id = g.game_id
-            INNER JOIN events e
+            INNER JOIN event e
                 ON e.event_id = g.event_id
-            WHERE e.event_name = ? AND g.name = ?
+            WHERE e.event_name = ? AND g.game_name = ?
         `, [eventName, gameName]);
     }
 
@@ -197,7 +210,7 @@ exports.DatabaseConnection = class DatabaseConnection{
     requestEventLocation = (eventName) => {
         return this.doQuery(`
             SELECT location
-            FROM events
+            FROM event
             WHERE event_name = ?
         `, [eventName]);
     }

@@ -10,7 +10,7 @@ const {
   requestTopScore,
   requestAllGames,
   voteImage
-} = require("./eventConnection");
+} = require("./databaseInterface");
 const {
   homePageRegistering
 } = require("./eventRegistrations/registerHomePage");

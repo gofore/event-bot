@@ -14,6 +14,10 @@ const {
 const {
   homePageRegistering
 } = require("./eventRegistrations/registerHomePage");
+const {
+  registerSaga,
+  createAskForTeam
+} = require("./setScoreSaga");
 const { directMessage } = require('./helpers');
 
 const eventName = requestSoonestEvent(Date.now());
@@ -41,10 +45,12 @@ const sayTimeUntil = (say, millisecondsUntil) => {
 };
 
 exports.registerEvents = app => {
+  registerSaga(app);
+  const askForTeam = createAskForTeam(app);
+
   //This is a bit unreadable but will in the future allow using the same lambdas for multiple different event listeners
   const registereableMessageEvents = [
     {
-      directMention: true,
       query: /eta|ETA/,
       lambda: async ({ message, say, context }) => {
         const timeUntil = timeUntilEvent(requestEventName()) - Date.now();
@@ -53,7 +59,6 @@ exports.registerEvents = app => {
       help: "[eta] to see how much time left for the event."
     },
     {
-      directMention: true,
       query: /score .+ .+ \d+$/,
       lambda: async ({ message, say, context }) => {
         const params = splitMentionMessage(message);
@@ -76,7 +81,6 @@ exports.registerEvents = app => {
         "[score _gameName_ _teamName_ _score_] to register scores for a game you participateed. Score should be in number format."
     },
     {
-      directMention: true,
       query: /score .+$/,
       lambda: async ({ message, say, context }) => {
         say("Nice to meet you my old fiend. Let's score! :)");
@@ -87,7 +91,6 @@ exports.registerEvents = app => {
       }
     },
     {
-      directMention: true,
       query: /register .+/,
       lambda: async ({ message, say, context }) => {
         const params = splitMentionMessage(message);
@@ -101,7 +104,6 @@ exports.registerEvents = app => {
       help: "[register _teamName_} to register a team"
     },
     {
-      directMention: true,
       query: /loc[ation]{0,5}$/,
       lambda: async ({ say, context }) => {
         const locationLink = locationOfEvent(requestEventName());
@@ -110,7 +112,6 @@ exports.registerEvents = app => {
       help: "[location] shows where the event is located."
     },
     {
-      directMention: true,
       query: /tops?$/,
       lambda: async ({ message, say, context }) => {
         showAllGameScores(say, 5);
@@ -118,7 +119,6 @@ exports.registerEvents = app => {
       help: "[top] or [tops] lists the top 5 teams of every game."
     },
     {
-      directMention: true,
       query: /tops? [\d].*/,
       lambda: async ({ message, say, context }) => {
         //Message should always be '@bot top number'
@@ -134,7 +134,6 @@ exports.registerEvents = app => {
       help: `[top _number_] or [tops _number_ _gameName_]. Shows top scores for all the matching games.`
     },
     {
-      directMention: true,
       query: /vote \d+/,
       lambda: async ({ message, say, context }) => {
         const params = splitMentionMessage(message);
@@ -148,7 +147,6 @@ exports.registerEvents = app => {
         "[vote _number_] allows you to register your vote for a image. Number is the image you wish to vote for."
     },
     {
-      directMention: true,
       query: /end/,
       lambda: async ({ message, say, context }) => {
         const params = splitMentionMessage(message);
@@ -164,17 +162,25 @@ exports.registerEvents = app => {
         "[end] or [end _location_] can be used to showcase ending time of event for a certain travel destination if provided"
     },
     {
-      directMention: true,
       query: /help/,
       lambda: async ({ message, say, context }) => {
         helpMentioned(app, say, this.registereableMessageEvents);
       },
       help: "[help] informs user with all the possible commands available."
+    },
+    {
+      query: /score$/,
+      lambda: async ({ say, message, context }) => {
+        const { botToken } = context;
+        const { channel } = message;
+        await askForTeam(botToken, channel);
+      },
+      help: "[score] starts dialog with the user to ask the necessary information for submitting score. USE THIS!"
     }
   ];
   this.registereableMessageEvents = registereableMessageEvents;
 
-  app.event("app_mention", async ({ event, context, say }) => {
+  app.event("app_mention", async ({ event, context }) => {
     const message = event.text;
     const sayFunc = async msg => {
       const result = await app.client.chat.postMessage({

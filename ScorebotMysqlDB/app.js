@@ -4,6 +4,10 @@ const eventName = 'hw';
 
 const db = new DatabaseConnection();
 
+const randomInt = (min, max) => {
+    return min + Math.floor(Math.random() * max);
+};
+
 // db.checkIfTeamExists(eventName, 'Mörrit', (results, fields) => {
 //     if(results.length === 1){
 //         console.log(`Team ${results[0].team_name} was found`);
@@ -62,7 +66,7 @@ db.registerTeam(eventName, 'Testaajat').then(result => {
     console.log(result);
 })
 
-db.registerTeam(eventName, 'Huuhkajat').then(result => {
+db.registerTeam(eventName, 'Muuntajat').then(result => {
     console.log(result);
 })
 
@@ -71,19 +75,16 @@ db.registerTeam(eventName, 'Huuhkajat').then(result => {
 //     console.log(result);
 // });
 
-db.saveScore('hw', 'speden spelit', 'Testaajat', 999).then((result) => {
+db.saveScore('hw', 'speden spelit', 'Huuhkajat', randomInt(1, 1500)).then((result) => {
     console.log(result);
 });
 
 
-// db.saveScoreById('hw', 1, 2, 111).then(result => {
-//     console.log(result);
-// })
+db.saveScoreById('hw', 1, 3, randomInt(1, 1500)).then(result => {
+    console.log(result);
+})
 
-// db.saveScore('speden spelit', 'Kakkoset', 240, (result) => {
-//     console.log('score saved!');
-// });
- 
+
 db.requestTopScoreFor('hw', 'speden spelit').then(results => {
     results.forEach(gameScore => {
         console.log(gameScore);

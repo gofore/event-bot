@@ -70,9 +70,11 @@ exports.DatabaseConnection = class DatabaseConnection{
         return this.doQuery(`
             INSERT INTO team_game (team_id, game_id, score)
             SELECT ?, ?, ?
-            FROM game g, team t            
-            INNER JOIN event e
-                USING (event_id)
+            FROM event e
+                INNER JOIN team t
+                    USING (event_id)      
+                INNER JOIN game g
+                    USING (event_id)
             WHERE e.event_name = ?
                 ON DUPLICATE KEY UPDATE score = VALUES(score)`, [teamId, gameId, score, eventName, score]);
 
@@ -84,9 +86,11 @@ exports.DatabaseConnection = class DatabaseConnection{
         return this.doQuery(`
             INSERT INTO team_game (team_id, game_id, score)
             SELECT t.team_id, g.game_id, ?
-            FROM team t, game g
-            INNER JOIN event e
-                USING (event_id)
+            FROM event e
+                INNER JOIN team t
+                    USING (event_id)      
+                INNER JOIN game g
+                    USING (event_id)
             WHERE t.team_name = ? AND g.game_name = ? AND e.event_name = ?
                 ON DUPLICATE KEY UPDATE score = VALUES(score)`, [score, teamName, gameName, eventName]);
     }
@@ -163,7 +167,7 @@ exports.DatabaseConnection = class DatabaseConnection{
     
     requestTopScoreFor = (eventName, gameName) => {
         return this.doQuery(`
-            SELECT t.team_name, g.game_name, tg.score
+            SELECT t.team_id, t.team_name, g.game_id, g.game_name, tg.score
             FROM team_game tg
             INNER JOIN team t
                 ON t.team_id = tg.team_id

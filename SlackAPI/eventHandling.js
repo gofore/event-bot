@@ -194,7 +194,8 @@ exports.registerEvents = app => {
         const { botToken } = context;
         const { channel } = message;
         await askForVote(botToken, channel);
-      }
+      },
+      help: "[vote] starts dialog with user to define category and number to vote on."
     }
   ];
   this.registereableMessageEvents = registereableMessageEvents;

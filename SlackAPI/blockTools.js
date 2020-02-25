@@ -1,21 +1,39 @@
-exports.giveTeamNameMsg = teams => {
+exports.createAsker = (app, requestFunction, requestData, mapLambda, blockBuilder, text) => async (botToken, channel) => {
+  try {
+    const items = await requestFunction(requestData).map(mapLambda);
+    const blocks = blockBuilder(items).blocks;
+
+    const result = await app.client.chat.postMessage({
+      token: botToken,
+      channel: channel,
+      blocks: blocks,
+      // Text in the notification
+      text: text
+    });
+  } catch (error) {
+    console.error(error);
+  }
+}; 
+
+
+exports.createSelection = (selections, helpText, actionId, selectionPlaceHolder) =>{
   return {
     blocks: [
       {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: "Pick your team from the dropdown list"
+          text: helpText
         },
         accessory: {
           type: "static_select",
-          action_id: "team_select",
+          action_id: actionId,
           placeholder: {
             type: "plain_text",
-            text: "Select your team",
+            text: selectionPlaceHolder,
             emoji: true
           },
-          options: teams.map(t => ({
+          options: selections.map(t => ({
             text: {
               type: "plain_text",
               text: t.name,
@@ -27,7 +45,8 @@ exports.giveTeamNameMsg = teams => {
       }
     ]
   };
-};
+}
+
 
 exports.giveGameMsg = games => {
   return {
@@ -59,6 +78,62 @@ exports.giveGameMsg = games => {
     ]
   };
 };
+
+
+exports.giveCategoryModal = (category) => {
+  return {
+    type: "modal",
+    callback_id: "setVoteModal",
+    title: {
+      type: "plain_text",
+      text: category.name,
+      emoji: true
+    },
+    submit: {
+      type: "plain_text",
+      text: "Submit",
+      emoji: true
+    },
+    close: {
+      type: "plain_text",
+      text: "Cancel",
+      emoji: true
+    },
+    blocks: [
+      {
+        type: "input",
+        block_id: "vote_block",
+        element: {
+          type: "plain_text_input",
+          action_id: "vote_input",
+          placeholder: {
+            type: "plain_text",
+            text: "Vote by image number [0-9]+"
+          }
+        },
+        label: {
+          type: "plain_text",
+          text: "Vote",
+          emoji: true
+        },
+        optional: false
+      }
+    ]
+  };
+}
+
+exports.votedSuccesfullyMessage = (voteNumber, category) => ({
+  blocks: [
+    {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `You voted for ${voteNumber} in category ${category}.`
+      }
+    }
+  ]
+});
+
 
 exports.giveGameAndScoreModal = (team, games) => {
   return {

@@ -1,46 +1,28 @@
 const { directMention } = require("@slack/bolt");
 const {
-  giveTeamNameMsg,
-  giveGameMsg,
   giveGameAndScoreModal,
   scoreUpdatedMsg
-} = require("./setScoreMessages");
+} = require("./blockTools");
+const {
+  giveTeamNameMsg, 
+  teamActionId
+} = require("./modalDefinitions");
 const { directMessage } = require("./helpers");
-const { 
+const {
+  requestAllScores,
   requestAllGames, 
   requestAllTeams, 
-  saveScore } = require("./eventConnection");
+  saveScore,
+  requestEventName,
+  requestTopScore
+} = require("./eventConnection");
 
-const eventId = "housewarming";
 const scorePattern = /[0-9]+$/;
-
-exports.createAskForTeam = app => async (botToken, channel) => {
-    try {
-      const teams = await requestAllTeams(eventId).map(c => ({
-        id: c.team_id,
-        name: c.team_name
-      }));
-      const selectTeamBlocks = giveTeamNameMsg(teams).blocks;
-
-      const result = await app.client.chat.postMessage({
-        token: botToken,
-        channel: channel,
-        blocks: selectTeamBlocks,
-        // Text in the notification
-        text: "Select your team"
-      });
-    } catch (error) {
-      console.error(error);
-    }
-  }; 
 
 
 exports.registerSaga = app => {
-  this.askForTeam = 
-
-
   // Listen for the team selection.
-  app.action("team_select", async ({ ack, body, context }) => {
+  app.action(teamActionId, async ({ ack, body, context }) => {
     // Acknowledge the select request
     ack();
 
@@ -56,7 +38,7 @@ exports.registerSaga = app => {
         name: selected_option.text.text
       };
 
-      const games = await requestAllGames(eventId).map(c => ({
+      const games = await requestAllGames(requestEventName()).map(c => ({
         id: c.game_id,
         name: c.game_name
       }));
@@ -135,7 +117,7 @@ exports.registerSaga = app => {
       const scoreNumber = parseInt(score);
 
       // UPDATE_DATABASE_HERE
-      await saveScore(eventId, team.name, game.name, scoreNumber);
+      await saveScore(requestEventName(), team.name, game.name, scoreNumber);
       
       // Update the message
       const scoreUpdatedBlocks = scoreUpdatedMsg(
@@ -156,4 +138,43 @@ exports.registerSaga = app => {
       console.error(error);
     }
   });
+};
+
+const stringifyScores = scorePackage => {
+  let scores = "";
+
+  scorePackage.forEach(element => {
+    let game = '';
+    if(element.game_name){
+      game = ' in '+element.game_name;
+    }
+    scores += "    " + element.team_name + " with score " + element.score + game + "\n";
+  });
+  return scores;
+}
+
+exports.showSingleGamesScores = (say, gameRequested, topsRequested) => {
+  const scorePackage = requestTopScore(
+    requestEventName(),
+    gameRequested,
+    topsRequested
+  );
+
+  if (Boolean(scorePackage)) {
+    const scores = stringifyScores(scorePackage);
+    say(`Tops are for ${gameRequested}:\n${scores}`);
+  } else {
+    say("Top list was not able to be retreived with the parameters given");
+  }
+};
+
+exports.showAllGameScores = (say, topsRequested) => {
+  // const games = requestAllGames(requestEventName());
+
+  // games.forEach(element => {
+  //   exports.showSingleGamesScores(say, element.name, topsRequested);
+  // });
+  const scorePackage = requestAllScores(requestEventName());
+  const scores = stringifyScores(scorePackage);
+  say(`Scores are:\n${scores}`);
 };

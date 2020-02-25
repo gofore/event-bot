@@ -16,11 +16,12 @@ const {
 } = require("./eventRegistrations/registerHomePage");
 const {
   registerSaga,
-  createAskForTeam,
   showAllGameScores,
   showSingleGamesScores
 } = require("./scoreHandlingFunctions");
-const { directMessage } = require('./helpers');
+const { registerVotingSaga } = require("./voteHandlingFunctions");
+const { createAskForTeam, createAskForVote } = require("./modalDefinitions");
+const { directMessage } = require("./helpers");
 
 const eventName = requestSoonestEvent(Date.now());
 
@@ -48,7 +49,9 @@ const sayTimeUntil = (say, millisecondsUntil) => {
 
 exports.registerEvents = app => {
   registerSaga(app);
+  registerVotingSaga(app);
   const askForTeam = createAskForTeam(app);
+  const askForVote = createAskForVote(app);
 
   //This is a bit unreadable but will in the future allow using the same lambdas for multiple different event listeners
   const registereableMessageEvents = [
@@ -128,7 +131,11 @@ exports.registerEvents = app => {
         const topsRequested = parseInteger(params[1]);
         const gameRequestedSpliceParameters = params.splice(2);
         if (gameRequestedSpliceParameters.length > 0) {
-          showSingleGamesScores(say, gameRequestedSpliceParameters.join(' '), topsRequested);
+          showSingleGamesScores(
+            say,
+            gameRequestedSpliceParameters.join(" "),
+            topsRequested
+          );
         } else {
           showAllGameScores(say, topsRequested);
         }
@@ -143,7 +150,6 @@ exports.registerEvents = app => {
         const imageNumber = parseInteger(params[2]);
         const { user } = message;
         if (voteImage(requestEventName(), categoryName, user, imageNumber)) {
-          //TODO: slack id?
           say("You voted image succesfully");
         }
       },
@@ -179,13 +185,26 @@ exports.registerEvents = app => {
         const { channel } = message;
         await askForTeam(botToken, channel);
       },
-      help: "[score] starts dialog with the user to ask the necessary information for submitting score. USE THIS!"
+      help:
+        "[score] starts dialog with the user to ask the necessary information for submitting score. USE THIS!"
+    },
+    {
+      query: /vote$/,
+      lambda: async ({ say, message, context }) => {
+        const { botToken } = context;
+        const { channel } = message;
+        await askForVote(botToken, channel);
+      }
     }
   ];
   this.registereableMessageEvents = registereableMessageEvents;
 
   app.event("app_mention", async ({ event, context, say }) => {
-    const message = {text: event.text, channel: event.channel, user: event.user};
+    const message = {
+      text: event.text,
+      channel: event.channel,
+      user: event.user
+    };
     const sayFunc = async msg => {
       const result = await app.client.chat.postMessage({
         token: context.botToken,

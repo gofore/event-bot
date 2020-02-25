@@ -74,18 +74,18 @@ db.registerTeam(eventName, 'Muuntajat').then(result => {
 // db.saveScore('hw', 'Speden spelit', 'Huuhkajat', 195).then((result) => {
 //     console.log(result);
 // });
-for (let index = 0; index < 20; index++) {
-    db.requestAllCategories(eventName).then(result => {
-        // result.forEach(element => {
-        //     console.log(element);
-        // });
-    
-        const randomCategory = result[randomInt(0, result.length)];
-        return db.voteById(randomCategory.category_id, randomInt(1, 20), randomInt(1, 20));
-    }).then(result => {
-        // console.log(result);
+
+db.requestAllCategories(eventName).then(result => {
+    result.forEach(element => {
+        console.log(element);
     });
-}
+
+    const randomCategory = result[randomInt(0, result.length)];
+    return db.voteById(randomCategory.category_id, randomInt(1, 20), randomInt(1, 20));
+}).then(result => {
+    // console.log(result);
+});
+
 
 
 db.saveScore('hw', 'speden spelit', 'Huuhkajat', randomInt(1, 1500)).then((result) => {

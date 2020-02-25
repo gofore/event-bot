@@ -180,8 +180,8 @@ exports.registerEvents = app => {
   ];
   this.registereableMessageEvents = registereableMessageEvents;
 
-  app.event("app_mention", async ({ event, context }) => {
-    const message = event.text;
+  app.event("app_mention", async ({ event, context, say }) => {
+    const message = {text: event.text, channel: event.channel, user: event.user};
     const sayFunc = async msg => {
       const result = await app.client.chat.postMessage({
         token: context.botToken,
@@ -191,7 +191,7 @@ exports.registerEvents = app => {
     };
 
     registereableMessageEvents.forEach(command => {
-      if (message.match(command.query)) {
+      if (message.text.match(command.query)) {
         command.lambda({ message, say: sayFunc, context });
       }
     });

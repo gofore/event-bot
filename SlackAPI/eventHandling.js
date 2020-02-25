@@ -16,8 +16,10 @@ const {
 } = require("./eventRegistrations/registerHomePage");
 const {
   registerSaga,
-  createAskForTeam
-} = require("./setScoreSaga");
+  createAskForTeam,
+  showAllGameScores,
+  showSingleGamesScores
+} = require("./scoreHandlingFunctions");
 const { directMessage } = require('./helpers');
 
 const eventName = requestSoonestEvent(Date.now());
@@ -124,9 +126,9 @@ exports.registerEvents = app => {
         //Message should always be '@bot top number'
         const params = splitMentionMessage(message);
         const topsRequested = parseInteger(params[1]);
-        const gameRequested = params.length > 2 ? params[2] : null;
-        if (gameRequested) {
-          showSingleGamesScores(say, gameRequested, topsRequested);
+        const gameRequestedSpliceParameters = params.splice(2);
+        if (gameRequestedSpliceParameters.length > 0) {
+          showSingleGamesScores(say, gameRequestedSpliceParameters.join(' '), topsRequested);
         } else {
           showAllGameScores(say, topsRequested);
         }
@@ -134,11 +136,13 @@ exports.registerEvents = app => {
       help: `[top _number_] or [tops _number_ _gameName_]. Shows top scores for all the matching games.`
     },
     {
-      query: /vote \d+/,
+      query: /vote .+ \d+/,
       lambda: async ({ message, say, context }) => {
         const params = splitMentionMessage(message);
-        const imageNumber = parseInteger(params[1]);
-        if (voteImage(requestEventName(), imageNumber)) {
+        const categoryName = params[1];
+        const imageNumber = parseInteger(params[2]);
+        const { user } = message;
+        if (voteImage(requestEventName(), categoryName, user, imageNumber)) {
           //TODO: slack id?
           say("You voted image succesfully");
         }
@@ -218,54 +222,3 @@ function helpMentioned(app, say, events) {
     "Currently I am configured to answer to @my-name commands only.\n";
   say(helpText);
 }
-
-function scoreCommand(app) {
-  app.command("/score", async ({ command, ack, say }) => {
-    ack();
-    const params = command.text.split(" ");
-    if (params.length < 3) {
-      say("The command probably was not formatted properly");
-      return;
-    }
-    const teamName = params[0];
-    const gameName = params[1];
-    const score = parseInteger(params[2]);
-    if (isNaN(score)) {
-      say("Please input score as a number");
-      return;
-    }
-    if (saveScore(requestEventName(), gameName, teamName, score)) {
-      say(`Saved score of ${score} to ${teamName} in ${gameName}`);
-    } else {
-      say("Score was not saved for some reason");
-    }
-  });
-}
-
-const showSingleGamesScores = (say, gameRequested, topsRequested) => {
-  const topScores = requestTopScore(
-    requestEventName(),
-    gameRequested,
-    topsRequested
-  );
-
-  if (Boolean(topScores)) {
-    let scores = "";
-
-    topScores.forEach(element => {
-      scores += "    " + element.name + " with score " + element.score + "\n";
-    });
-
-    say(`Tops are for ${gameRequested}:\n${scores}`);
-  } else {
-    say("Top list was not able to be retreived with the parameters given");
-  }
-};
-
-const showAllGameScores = (say, topsRequested) => {
-  const games = requestAllGames(requestEventName());
-
-  games.forEach(element => {
-    showSingleGamesScores(say, element.name, topsRequested);
-  });
-};

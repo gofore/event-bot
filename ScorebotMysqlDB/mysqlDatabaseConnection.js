@@ -188,7 +188,7 @@ exports.DatabaseConnection = class DatabaseConnection{
     
     requestTopScoreFor = (eventName, gameName) => {
         return this.doQuery(`
-            SELECT t.team_id, t.team_name, g.game_id, g.game_name, tg.score
+            SELECT t.team_id, t.team_name, tg.score
             FROM team_game tg
             INNER JOIN team t
                 ON t.team_id = tg.team_id
@@ -215,7 +215,7 @@ exports.DatabaseConnection = class DatabaseConnection{
                 ON e.event_id = g.event_id
                 AND e.event_id = t.event_id
             WHERE e.event_name = ?
-            ORDER BY g.name ASC, tg.score DESC
+            ORDER BY g.game_name ASC, tg.score DESC
         `, [eventName]);
     };
 

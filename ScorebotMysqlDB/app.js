@@ -103,6 +103,12 @@ db.requestTopScoreFor('hw', 'speden spelit').then(results => {
         console.log(gameScore);
     });
 });
+
+db.requestAllTopScores(eventName).then(results => {
+    results.forEach(scorePackage => {
+        console.log(scorePackage);
+    });
+});
 // db.findSoonestEvent().then((results) => {
 //     results.forEach(gameScore => {
 //         console.log(gameScore);

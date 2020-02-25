@@ -96,12 +96,33 @@ exports.DatabaseConnection = class DatabaseConnection{
     }
     
 
-    voteFor = (eventName, slackId, imageNumber) => {
+    voteFor = (eventName, categoryName, slackId, imageNumber) => {
         return this.doQuery(`
-            INSERT INTO vote (event_id, slack_id, vote)
-            SELECT event_id, ?, ?
-            FROM event
-            WHERE event_name = ?`, [slackId, imageNumber, eventName]);
+            INSERT INTO vote (category_id, slack_id, vote)
+            SELECT c.category_id, ?, ?
+            FROM category c
+                INNER JOIN event e
+                USING (event_id)
+            WHERE event_name = ? AND c.category_name = ?`, [slackId, imageNumber, eventName, categoryName]);
+    }
+
+
+    voteById = (categoryId, slackId, imageNumber) => {
+        return this.doQuery(`
+            INSERT INTO vote (category_id, slack_id, vote)
+            VALUES(?, ?, ?)
+                ON DUPLICATE KEY UPDATE vote = VALUES(vote)`, [categoryId, slackId, imageNumber]);
+    }
+
+
+    requestAllCategories = (eventName) => {
+        return this.doQuery(`
+            SELECT c.category_id, c.category_name
+            FROM category c
+            INNER JOIN event e
+                USING(event_id)
+            WHERE e.event_name = ?
+        `, [eventName]);
     }
 
 

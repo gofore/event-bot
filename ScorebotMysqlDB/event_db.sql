@@ -32,17 +32,24 @@ CREATE TABLE `correct_answer` (
 );
 
 CREATE TABLE `vote` (
-  `vote_id` int PRIMARY KEY AUTO_INCREMENT,
-  `event_id` int,
+  `category_id` int,
   `slack_id` varchar(255),
-  `vote` int
+  `vote` int,
+  PRIMARY KEY (`category_id`, `slack_id`)
+);
+
+CREATE TABLE `category` (
+  `category_id` int PRIMARY KEY AUTO_INCREMENT,
+  `event_id` int,
+  `category_name` varchar(255)
 );
 
 CREATE TABLE `ending` (
   `event_id` int,
+  `location_from_three_lettered` varchar(3),
   `location_from` varchar(255),
   `end_time` timestamp,
-  PRIMARY KEY (`event_id`, `location_from`)
+  PRIMARY KEY (`event_id`, `location_from_three_lettered`)
 );
 
 ALTER TABLE `team` ADD CONSTRAINT `team_event_id` FOREIGN KEY (`event_id`) REFERENCES `event` (`event_id`);
@@ -55,6 +62,8 @@ ALTER TABLE `team_game` ADD CONSTRAINT `team_game_game_id` FOREIGN KEY (`game_id
 
 ALTER TABLE `correct_answer` ADD CONSTRAINT `correct_answer_game_id` FOREIGN KEY (`game_id`) REFERENCES `game` (`game_id`);
 
-ALTER TABLE `vote` ADD CONSTRAINT `vote_event_id` FOREIGN KEY (`event_id`) REFERENCES `event` (`event_id`);
+ALTER TABLE `vote` ADD CONSTRAINT `vote_category_id` FOREIGN KEY (`category_id`) REFERENCES `category` (`category_id`);
+
+ALTER TABLE `category` ADD CONSTRAINT `category_event_id` FOREIGN KEY (`event_id`) REFERENCES `event` (`event_id`);
 
 ALTER TABLE `ending` ADD CONSTRAINT `ending_event_id` FOREIGN KEY (`event_id`) REFERENCES `event` (`event_id`);

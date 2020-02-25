@@ -22,3 +22,8 @@ SELECT ev.event_id, 'Speden spelit'
 FROM event ev
 WHERE ev.event_name = 'hw';
 
+INSERT INTO `category` (event_id, category_name)
+VALUES (1, 'Asia asu');
+
+INSERT INTO `category` (event_id, category_name)
+VALUES (1, 'Ei tod asu');

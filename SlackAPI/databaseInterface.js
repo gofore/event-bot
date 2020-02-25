@@ -30,8 +30,16 @@ exports.saveScore = async (eventName, gameName, teamName, score) => {
 };
 
 
-exports.voteImage = (eventName, imageNumber) => {
-    return connection.voteFor(eventName, 123123, imageNumber);
+exports.voteImage = (eventName, categoryName, slackId, imageNumber) => {
+    return connection.voteFor(eventName, categoryName, slackId, imageNumber);
+}
+
+exports.requestAllCategories = (eventName) => {
+    return connection.requestAllCategories(eventName);
+}
+
+exports.voteByCategoryId = (categoryId, slackId, imageNumber) => {
+    return connection.voteById(categoryId, slackId, imageNumber);
 }
 
 

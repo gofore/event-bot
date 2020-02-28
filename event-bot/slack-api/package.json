@@ -1,0 +1,20 @@
+{
+  "name": "slack-api",
+  "version": "1.0.0",
+  "description": "Event bot connecting with slack",
+  "main": "app.js",
+  "repository": "https://github.com/gofore/event-bot",
+  "author": "Tero Paavolainen",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^0.18.0",
+    "@slack/bolt": "^1.6.0"
+  },
+  "scripts": {
+    "test": "mocha tests/unit/"
+  },
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "mocha": "^6.1.4"
+  }
+}

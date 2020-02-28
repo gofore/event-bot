@@ -15,6 +15,11 @@ exports.timeUntilEvent = (eventName) => {
 };
 
 
+exports.saveScoreById = async (eventName, gameId, teamId, score) => {
+    return connection.saveScoreById(eventName, gameId, teamId, score);
+}
+
+
 exports.saveScore = async (eventName, gameName, teamName, score) => {
     const exists = await exports.doesTeamExist(eventName, teamName); 
     if(!exists){
@@ -25,8 +30,16 @@ exports.saveScore = async (eventName, gameName, teamName, score) => {
 };
 
 
-exports.voteImage = (eventName, imageNumber) => {
-    return connection.voteFor(eventName, 123123, imageNumber);
+exports.voteImage = (eventName, categoryName, slackId, imageNumber) => {
+    return connection.voteFor(eventName, categoryName, slackId, imageNumber);
+}
+
+exports.requestAllCategories = (eventName) => {
+    return connection.requestAllCategories(eventName);
+}
+
+exports.voteByCategoryId = (categoryId, slackId, imageNumber) => {
+    return connection.voteById(categoryId, slackId, imageNumber);
 }
 
 

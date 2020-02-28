@@ -13,7 +13,7 @@ const {
   requestAllScores,
   voteByCategoryId,
   requestEventName,
-  requestTopScore} = require("./eventConnection");
+  requestTopScore} = require("./databaseInterface");
 
 const scorePattern = /[0-9]+$/;
 

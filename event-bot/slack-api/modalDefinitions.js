@@ -6,7 +6,7 @@ const {
     requestAllCategories,
     requestAllTeams,
     requestEventName
-} = require("./eventConnection");
+} = require("./databaseInterface");
 
 exports.teamActionId = "team_select";
 exports.categoryActionId = "category_select";

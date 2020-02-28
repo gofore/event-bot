@@ -7,11 +7,13 @@
   "author": "Tero Paavolainen",
   "license": "MIT",
   "dependencies": {
-    "axios": "^0.18.0",
-    "@slack/bolt": "^1.6.0"
+    "@slack/bolt": "^1.6.0",
+    "aws-serverless-express": "^3.3.6",
+    "axios": "^0.18.0"
   },
   "scripts": {
-    "test": "mocha tests/unit/"
+    "test": "mocha tests/unit/",
+    "start": "node app.js"
   },
   "devDependencies": {
     "chai": "^4.2.0",

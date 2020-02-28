@@ -1,4 +1,3 @@
-const { directMention } = require("@slack/bolt");
 const {
   timeUntilEvent,
   timeUntilEventEnd,
@@ -7,13 +6,11 @@ const {
   registerTeam,
   locationOfEvent,
   requestSoonestEvent,
-  requestTopScore,
-  requestAllGames,
   voteImage
 } = require("./databaseInterface");
 const {
   homePageRegistering
-} = require("./eventRegistrations/registerHomePage");
+} = require("./registerHomePage");
 const {
   registerSaga,
   showAllGameScores,

@@ -15,7 +15,7 @@ const {
   saveScore,
   requestEventName,
   requestTopScore
-} = require("./eventConnection");
+} = require("./databaseInterface");
 
 const scorePattern = /[0-9]+$/;
 

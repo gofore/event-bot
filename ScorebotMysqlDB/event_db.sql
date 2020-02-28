@@ -67,3 +67,4 @@ ALTER TABLE `vote` ADD CONSTRAINT `vote_category_id` FOREIGN KEY (`category_id`)
 ALTER TABLE `category` ADD CONSTRAINT `category_event_id` FOREIGN KEY (`event_id`) REFERENCES `event` (`event_id`);
 
 ALTER TABLE `ending` ADD CONSTRAINT `ending_event_id` FOREIGN KEY (`event_id`) REFERENCES `event` (`event_id`);
+

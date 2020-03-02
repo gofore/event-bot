@@ -61,6 +61,7 @@ exports.registerEvents = app => {
       help: "[eta] to see how much time left for the event."
     },
     {
+      heavy: true,
       query: /score .+ .+ \d+$/,
       lambda: async ({ message, say, context }) => {
         const params = splitMentionMessage(message);
@@ -83,6 +84,7 @@ exports.registerEvents = app => {
         "[score _gameName_ _teamName_ _score_] to register scores for a game you participateed. Score should be in number format."
     },
     {
+      heavy: true,
       query: /score .+$/,
       lambda: async ({ message, say, context }) => {
         say("Nice to meet you my old fiend. Let's score! :)");
@@ -93,6 +95,7 @@ exports.registerEvents = app => {
       }
     },
     {
+      heavy: true,
       query: /register .+/,
       lambda: async ({ message, say, context }) => {
         const params = splitMentionMessage(message);
@@ -114,6 +117,7 @@ exports.registerEvents = app => {
       help: "[location] shows where the event is located."
     },
     {
+      heavy: true,
       query: /tops?$/,
       lambda: async ({ message, say, context }) => {
         showAllGameScores(say, 5);
@@ -121,6 +125,7 @@ exports.registerEvents = app => {
       help: "[top] or [tops] lists the top 5 teams of every game."
     },
     {
+      heavy: true,
       query: /tops? [\d].*/,
       lambda: async ({ message, say, context }) => {
         //Message should always be '@bot top number'
@@ -140,6 +145,7 @@ exports.registerEvents = app => {
       help: `[top _number_] or [tops _number_ _gameName_]. Shows top scores for all the matching games.`
     },
     {
+      heavy: true,
       query: /vote .+ \d+/,
       lambda: async ({ message, say, context }) => {
         const params = splitMentionMessage(message);
@@ -154,6 +160,7 @@ exports.registerEvents = app => {
         "[vote _number_] allows you to register your vote for a image. Number is the image you wish to vote for."
     },
     {
+      heavy: true,
       query: /end/,
       lambda: async ({ message, say, context }) => {
         const params = splitMentionMessage(message);
@@ -176,6 +183,7 @@ exports.registerEvents = app => {
       help: "[help] informs user with all the possible commands available."
     },
     {
+      heavy: true,
       query: /score$/,
       lambda: async ({ say, message, context }) => {
         const { botToken } = context;
@@ -186,6 +194,7 @@ exports.registerEvents = app => {
         "[score] starts dialog with the user to ask the necessary information for submitting score. USE THIS!"
     },
     {
+      heavy: true,
       query: /vote$/,
       lambda: async ({ say, message, context }) => {
         const { botToken } = context;
@@ -197,29 +206,40 @@ exports.registerEvents = app => {
   ];
   this.registereableMessageEvents = registereableMessageEvents;
 
+  const handleRegistreables = async (message, context) => {
+    const sayFunc = async msg => {
+      const result = await app.client.chat.postMessage({
+        token: context.botToken,
+        channel: message.channel.id,
+        text: msg
+      });
+      console.log(result);
+    };
+
+    registereableMessageEvents.forEach(async command => {
+      if (message.text.match(command.query)) {
+        if(command.heavy){
+          await sayFunc("Processing request...");
+        }
+
+        command.lambda({ message, say: sayFunc, context });
+      }
+    });
+  }
+
   app.event("app_mention", async ({ event, context, say }) => {
     const message = {
       text: event.text,
       channel: event.channel,
       user: event.user
     };
-    const sayFunc = async msg => {
-      const result = await app.client.chat.postMessage({
-        token: context.botToken,
-        channel: event.channel,
-        text: msg
-      });
-    };
 
-    registereableMessageEvents.forEach(command => {
-      if (message.text.match(command.query)) {
-        command.lambda({ message, say: sayFunc, context });
-      }
-    });
+    handleRegistreables(message, context);
+    
   });
 
-  registereableMessageEvents.forEach(event => {
-    app.message(directMessage, event.query, event.lambda);
+  app.message(directMessage, async ({ message, context, say }) => {
+    handleRegistreables(message, context);
   });
 
   homePageRegistering(app);

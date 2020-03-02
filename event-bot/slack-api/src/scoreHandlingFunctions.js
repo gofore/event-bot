@@ -1,17 +1,13 @@
-const { directMention } = require("@slack/bolt");
 const {
   giveGameAndScoreModal,
   scoreUpdatedMsg
 } = require("./blockTools");
 const {
-  giveTeamNameMsg, 
   teamActionId
 } = require("./modalDefinitions");
-const { directMessage } = require("./helpers");
 const {
   requestAllScores,
   requestAllGames, 
-  requestAllTeams, 
   saveScore,
   requestEventName,
   requestTopScore
@@ -52,31 +48,13 @@ exports.registerSaga = app => {
         })
       };
 
-      // Update the message
-      //  const result = await app.client.chat.update({
-      //         token: botToken,
-      //         // ts of message to update
-      //         ts: message.ts,
-      //         // Channel of message
-      //         channel: channel.id,
-      //         blocks: selectGameBlocks,
-      //         text: "Pick your ongoing game",
-      //         view_payload: selectedTeam,
-      //       });
-
-      const result = app.client.views.open({
-        token: botToken,
-        trigger_id: trigger_id,
-        // View payload
-        view: modal
-      });
     } catch (error) {
       console.error(error);
     }
   });
 
   // Listen for the game and score result.
-  app.view("setScoreModal", async ({ ack, body, view, context }) => {
+  app.view("setScoreModal", async ({ ack, view, context }) => {
     try {
       const { botToken } = context;
       const {
@@ -111,9 +89,6 @@ exports.registerSaga = app => {
 
       ack();
 
-      // TODO update database.
-      const teamId = parseInt(team.id);
-      const gameId = parseInt(game.id);
       const scoreNumber = parseInt(score);
 
       // UPDATE_DATABASE_HERE
@@ -125,15 +100,6 @@ exports.registerSaga = app => {
         game.name,
         scoreNumber
       ).blocks;
-      const result = await app.client.chat.update({
-        token: botToken,
-        // ts of message to update
-        ts: message_ts,
-        // Channel of message
-        channel: channel_id,
-        blocks: scoreUpdatedBlocks,
-        text: `Game ${game.name} score updated`
-      });
     } catch (error) {
       console.error(error);
     }
@@ -168,7 +134,7 @@ exports.showSingleGamesScores = (say, gameRequested, topsRequested) => {
   }
 };
 
-exports.showAllGameScores = (say, topsRequested) => {
+exports.showAllGameScores = (say) => {
   // const games = requestAllGames(requestEventName());
 
   // games.forEach(element => {

@@ -1,24 +1,19 @@
 {
-  "name": "slack-api",
+  "name": "event-bot",
   "version": "1.0.0",
   "description": "Event bot connecting with slack",
-  "main": "src\\app.js",
+  "main": "main.js",
   "repository": "https://github.com/gofore/event-bot",
   "author": "Tero Paavolainen",
   "license": "MIT",
   "dependencies": {
-    "@slack/bolt": "^1.6.0",
-    "aws-serverless-express": "^3.3.6",
-    "dotenv": "^8.2.0",
-    "webpack": "^4.42.0"
+    "dotenv": "^8.2.0"
   },
   "scripts": {
     "test": "mocha tests/unit/",
-    "start": "node .\\src\\app.js",
+    "start": "node app.js",
     "package": "npx webpack --config .\\webpack.config.js && copy .\\.env ..\\build\\.env",
     "deploy": "sam deploy --template-file ../template.yaml --stack-name event-bot --s3-bucket event-bot-bucket --region eu-west-1"
   },
-  "devDependencies": {
-    "webpack-cli": "^3.3.11"
-  }
+  "devDependencies": {}
 }

@@ -1,19 +1,12 @@
-const { directMention } = require("@slack/bolt");
 const {
   giveCategoryModal,
   votedSuccesfullyMessage
 } = require("./blockTools");
 const {
-    giveCategoryNameMsg, 
     categoryActionId
   } = require("./modalDefinitions");
-const { directMessage } = require("./helpers");
 const {
-  requestAllCategories,
-  requestAllScores,
-  voteByCategoryId,
-  requestEventName,
-  requestTopScore} = require("./databaseInterface");
+  voteByCategoryId} = require("./databaseInterface");
 
 const scorePattern = /[0-9]+$/;
 
@@ -44,19 +37,13 @@ exports.registerVotingSaga = app => {
         })
       };
 
-      const result = app.client.views.open({
-        token: botToken,
-        trigger_id: trigger_id,
-        // View payload
-        view: modal
-      });
     } catch (error) {
       console.error(error);
     }
   });
 
   // Listen for the game and score result.
-  app.view("setVoteModal", async ({ ack, body, view, context }) => {
+  app.view("setVoteModal", async ({ ack, view, context }) => {
     try {
       const { botToken, user } = context;
       const {
@@ -98,15 +85,6 @@ exports.registerVotingSaga = app => {
         voteNumber,
         category.name
       ).blocks;
-      const result = await app.client.chat.update({
-        token: botToken,
-        // ts of message to update
-        ts: message_ts,
-        // Channel of message
-        channel: channel_id,
-        blocks: scoreUpdatedBlocks,
-        text: `Vote updated to ${voteNumber}`
-      });
     } catch (error) {
       console.error(error);
     }

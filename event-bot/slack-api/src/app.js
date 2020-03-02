@@ -27,5 +27,11 @@ const awsServerlessExpress = require('aws-serverless-express');
 const server = awsServerlessExpress.createServer(expressReceiver.app);
 
 module.exports.lambdaHandler = (event, context) => {
-  awsServerlessExpress.proxy(server, event, context);
+  return new Promise((resolve) => {
+    awsServerlessExpress.proxy(server, event, context);
+    setTimeout(() => {
+      console.log('waited 2s');
+    }, 2000);
+  })
+
 }

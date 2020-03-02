@@ -19,6 +19,7 @@ const {
 const { registerVotingSaga } = require("./voteHandlingFunctions");
 const { createAskForTeam, createAskForVote } = require("./modalDefinitions");
 const { directMessage } = require("./helpers");
+const fetch = require('node-fetch');
 
 const eventName = requestSoonestEvent(Date.now());
 
@@ -208,12 +209,20 @@ exports.registerEvents = app => {
 
   const handleRegistreables = async (message, context) => {
     const sayFunc = async msg => {
-      const result = await app.client.chat.postMessage({
-        token: context.botToken,
-        channel: message.channel.id,
+      let body = {
+        channel: message.channel,
         text: msg
+      };
+      console.log(body);
+      await fetch('https://slack.com/api/chat.postMessage', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + context.botToken
+        },
+        body: JSON.stringify(body)
       });
-      console.log(result);
+      console.log('message sent');
     };
 
     registereableMessageEvents.forEach(async command => {

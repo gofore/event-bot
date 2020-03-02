@@ -1,9 +1,9 @@
-exports.createAsker = (app, requestFunction, requestData, mapLambda, blockBuilder, text) => async (botToken, channel) => {
+exports.createAsker = (app, requestFunction, requestData, mapLambda, blockBuilder, text) => (botToken, channel) => {
   try {
-    const items = await requestFunction(requestData).map(mapLambda);
+    const items =  requestFunction(requestData).map(mapLambda);
     const blocks = blockBuilder(items).blocks;
 
-    const result = await app.client.chat.postMessage({
+    const result =  app.client.chat.postMessage({
       token: botToken,
       channel: channel,
       blocks: blocks,

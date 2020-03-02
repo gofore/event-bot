@@ -1,7 +1,7 @@
 exports.homePageRegistering = function(app) {
-    app.event('app_home_opened', async ({ event, context }) => {
+    app.event('app_home_opened',  ({ event, context }) => {
       try {
-        const result = await app.client.views.publish({
+        const result =  app.client.views.publish({
           token: context.botToken,
           user_id: event.user,
           view: {

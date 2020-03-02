@@ -13,7 +13,7 @@ const scorePattern = /[0-9]+$/;
 
 
 exports.registerVotingSaga = app => {
-  app.action(categoryActionId, async ({ ack, body, context }) => {
+  app.action(categoryActionId,  ({ ack, body, context }) => {
     // Acknowledge the select request
     ack();
 
@@ -43,7 +43,7 @@ exports.registerVotingSaga = app => {
   });
 
   // Listen for the game and score result.
-  app.view("setVoteModal", async ({ ack, view, context }) => {
+  app.view("setVoteModal",  ({ ack, view, context }) => {
     try {
       const { botToken, user } = context;
       const {
@@ -78,7 +78,7 @@ exports.registerVotingSaga = app => {
       const voteNumber = parseInt(vote);
 
       // UPDATE_DATABASE_HERE
-      await voteByCategoryId(categoryId, user, voteNumber);
+       voteByCategoryId(categoryId, user, voteNumber);
       
       // Update the message
       const scoreUpdatedBlocks = votedSuccesfullyMessage(

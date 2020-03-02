@@ -18,7 +18,7 @@ const scorePattern = /[0-9]+$/;
 
 exports.registerSaga = app => {
   // Listen for the team selection.
-  app.action(teamActionId, async ({ ack, body, context }) => {
+  app.action(teamActionId,  ({ ack, body, context }) => {
     // Acknowledge the select request
     ack();
 
@@ -34,7 +34,7 @@ exports.registerSaga = app => {
         name: selected_option.text.text
       };
 
-      const games = await requestAllGames(requestEventName()).map(c => ({
+      const games =  requestAllGames(requestEventName()).map(c => ({
         id: c.game_id,
         name: c.game_name
       }));
@@ -54,7 +54,7 @@ exports.registerSaga = app => {
   });
 
   // Listen for the game and score result.
-  app.view("setScoreModal", async ({ ack, view, context }) => {
+  app.view("setScoreModal",  ({ ack, view, context }) => {
     try {
       const { botToken } = context;
       const {
@@ -92,7 +92,7 @@ exports.registerSaga = app => {
       const scoreNumber = parseInt(score);
 
       // UPDATE_DATABASE_HERE
-      await saveScore(requestEventName(), team.name, game.name, scoreNumber);
+       saveScore(requestEventName(), team.name, game.name, scoreNumber);
       
       // Update the message
       const scoreUpdatedBlocks = scoreUpdatedMsg(

@@ -45,7 +45,7 @@ const sayTimeUntil = (say, millisecondsUntil) => {
   );
 };
 
-exports.registerEvents = app => {
+exports.registerEvents = (app, finish) => {
   registerSaga(app);
   registerVotingSaga(app);
   const askForTeam = createAskForTeam(app);
@@ -55,7 +55,7 @@ exports.registerEvents = app => {
   const registereableMessageEvents = [
     {
       query: /eta|ETA/,
-      lambda: async ({ message, say, context }) => {
+      lambda:  ({ message, say, context }) => {
         const timeUntil = timeUntilEvent(requestEventName()) - Date.now();
         sayTimeUntil(say, timeUntil);
       },
@@ -64,7 +64,7 @@ exports.registerEvents = app => {
     {
       heavy: true,
       query: /score .+ .+ \d+$/,
-      lambda: async ({ message, say, context }) => {
+      lambda:  ({ message, say, context }) => {
         const params = splitMentionMessage(message);
         const gameName = params[1];
         const teamName = params[2];
@@ -87,7 +87,7 @@ exports.registerEvents = app => {
     {
       heavy: true,
       query: /score .+$/,
-      lambda: async ({ message, say, context }) => {
+      lambda:  ({ message, say, context }) => {
         say("Nice to meet you my old fiend. Let's score! :)");
         try {
         } catch (error) {
@@ -98,7 +98,7 @@ exports.registerEvents = app => {
     {
       heavy: true,
       query: /register .+/,
-      lambda: async ({ message, say, context }) => {
+      lambda:  ({ message, say, context }) => {
         const params = splitMentionMessage(message);
         const teamName = params[1];
         if (registerTeam(teamName)) {
@@ -111,7 +111,7 @@ exports.registerEvents = app => {
     },
     {
       query: /loc[ation]{0,5}$/,
-      lambda: async ({ say, context }) => {
+      lambda:  ({ say, context }) => {
         const locationLink = locationOfEvent(requestEventName());
         say(`${locationLink}`);
       },
@@ -120,7 +120,7 @@ exports.registerEvents = app => {
     {
       heavy: true,
       query: /tops?$/,
-      lambda: async ({ message, say, context }) => {
+      lambda:  ({ message, say, context }) => {
         showAllGameScores(say, 5);
       },
       help: "[top] or [tops] lists the top 5 teams of every game."
@@ -128,7 +128,7 @@ exports.registerEvents = app => {
     {
       heavy: true,
       query: /tops? [\d].*/,
-      lambda: async ({ message, say, context }) => {
+      lambda:  ({ message, say, context }) => {
         //Message should always be '@bot top number'
         const params = splitMentionMessage(message);
         const topsRequested = parseInteger(params[1]);
@@ -148,7 +148,7 @@ exports.registerEvents = app => {
     {
       heavy: true,
       query: /vote .+ \d+/,
-      lambda: async ({ message, say, context }) => {
+      lambda:  ({ message, say, context }) => {
         const params = splitMentionMessage(message);
         const categoryName = params[1];
         const imageNumber = parseInteger(params[2]);
@@ -163,7 +163,7 @@ exports.registerEvents = app => {
     {
       heavy: true,
       query: /end/,
-      lambda: async ({ message, say, context }) => {
+      lambda:  ({ message, say, context }) => {
         const params = splitMentionMessage(message);
         let location = null;
         if (params.length > 1) {
@@ -178,7 +178,7 @@ exports.registerEvents = app => {
     },
     {
       query: /help/,
-      lambda: async ({ message, say, context }) => {
+      lambda:  ({ message, say, context }) => {
         helpMentioned(app, say, this.registereableMessageEvents);
       },
       help: "[help] informs user with all the possible commands available."
@@ -186,10 +186,10 @@ exports.registerEvents = app => {
     {
       heavy: true,
       query: /score$/,
-      lambda: async ({ say, message, context }) => {
+      lambda:  ({ say, message, context }) => {
         const { botToken } = context;
         const { channel } = message;
-        await askForTeam(botToken, channel);
+         askForTeam(botToken, channel);
       },
       help:
         "[score] starts dialog with the user to ask the necessary information for submitting score. USE THIS!"
@@ -197,24 +197,24 @@ exports.registerEvents = app => {
     {
       heavy: true,
       query: /vote$/,
-      lambda: async ({ say, message, context }) => {
+      lambda:  ({ say, message, context }) => {
         const { botToken } = context;
         const { channel } = message;
-        await askForVote(botToken, channel);
+         askForVote(botToken, channel);
       },
       help: "[vote] starts dialog with user to define category and number to vote on."
     }
   ];
   this.registereableMessageEvents = registereableMessageEvents;
 
-  const handleRegistreables = async (message, context) => {
-    const sayFunc = async msg => {
+  const handleRegistreables =  (message, context) => {
+    const sayFunc =  msg => {
       let body = {
         channel: message.channel,
         text: msg
       };
       console.log(body);
-      await fetch('https://slack.com/api/chat.postMessage', {
+       fetch('https://slack.com/api/chat.postMessage', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -222,13 +222,13 @@ exports.registerEvents = app => {
         },
         body: JSON.stringify(body)
       });
-      console.log('message sent');
+      finish(null, 200);
     };
 
-    registereableMessageEvents.forEach(async command => {
+    registereableMessageEvents.forEach( command => {
       if (message.text.match(command.query)) {
         if(command.heavy){
-          await sayFunc("Processing request...");
+           sayFunc("Processing request...");
         }
 
         command.lambda({ message, say: sayFunc, context });
@@ -236,7 +236,7 @@ exports.registerEvents = app => {
     });
   }
 
-  app.event("app_mention", async ({ event, context, say }) => {
+  app.event("app_mention",  ({ event, context, say }) => {
     const message = {
       text: event.text,
       channel: event.channel,
@@ -247,7 +247,7 @@ exports.registerEvents = app => {
     
   });
 
-  app.message(directMessage, async ({ message, context, say }) => {
+  app.message(directMessage,  ({ message, context, say }) => {
     handleRegistreables(message, context);
   });
 

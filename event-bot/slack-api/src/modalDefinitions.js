@@ -19,12 +19,12 @@ exports.giveTeamNameMsg = teams => {
   return createSelection(teams, "Pick your team from the dropdown list", exports.teamActionId,"Select your team")
 };
 
-exports.createAskForTeam = app => async (botToken, channel) => {
+exports.createAskForTeam = app =>  (botToken, channel) => {
     return createAsker(app, requestAllTeams, requestEventName,
       c => ({id: c.team_id, name: c.team_name}), exports.giveTeamNameMsg, "Select your team");
 }; 
 
-exports.createAskForVote = app => async (botToken, channel) => {
+exports.createAskForVote = app =>  (botToken, channel) => {
     return createAsker(app, requestAllCategories, requestEventName,
         c => ({id: c.category_id, name: c.category_name}), exports.giveCategoryNameMsg, "Select voting category");
   }; 

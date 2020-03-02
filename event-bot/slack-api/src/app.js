@@ -18,7 +18,6 @@ const app = new App({
   receiver: expressReceiver
 });
 
-eventHandler.registerEvents(app);
 
 // ------------------------
 // AWS Lambda handler
@@ -26,12 +25,7 @@ eventHandler.registerEvents(app);
 const awsServerlessExpress = require('aws-serverless-express');
 const server = awsServerlessExpress.createServer(expressReceiver.app);
 
-module.exports.lambdaHandler = (event, context) => {
-  return new Promise((resolve) => {
+module.exports.lambdaHandler = (event, context, callback) => {
+    eventHandler.registerEvents(app, callback);
     awsServerlessExpress.proxy(server, event, context);
-    setTimeout(() => {
-      console.log('waited 2s');
-    }, 2000);
-  })
-
 }

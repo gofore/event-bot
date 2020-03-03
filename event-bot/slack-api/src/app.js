@@ -1,49 +1,27 @@
 'use strict';
-
-if (process.env.NODE_ENV !== 'production') {
-  const dotEnv = require('dotenv');
-  dotEnv.config({path:'.env'});
-}
-
-const { App, ExpressReceiver } = require("@slack/bolt");
-const eventHandler = require('./eventHandling.js');
 const fetch = require('node-fetch');
 
 const secret = process.env.SLACK_SIGNING_SECRET || '1111111111111111111111111';
 const botToken = process.env.SLACK_BOT_TOKEN || 'xoxb-werwer-werwer-werw-erwer-werwre';
 
-const expressReceiver = new ExpressReceiver({
-  signingSecret: secret
-});
+const generateSuccessfulResponse = () =>{
+     const responseBody = {
+    };
 
-const makeAppWithToken = (token, expressReceiver) => {
-  return new App({
-    token: token,
-    receiver: expressReceiver
-  });
+    const response = {
+        "statusCode": 200,
+        "headers": {
+        },
+        "body": JSON.stringify(responseBody),
+        "isBase64Encoded": false
+    };
+    return response;
 }
+// eventHandler.registerEvents(app);
 
-const makeAppWithOauth = expressReceiver => {
-  const oauth = { auth:""}; //require('./lib/oauth');
-  console.log('doing this');
-  const app = new App({
-    authorize: oauth.auth,
-    receiver: expressReceiver
-  });
-
-  oauth.install(expressReceiver.app, app.client);
-
-  return app;
-}
-
-const useAuth = (process.env.USE_OAUTH || false);
-const app = useAuth ?
-  makeAppWithOauth(expressReceiver) :
-  makeAppWithToken(botToken, expressReceiver);
-
-eventHandler.registerEvents(app);
-
-module.exports.lambdaHandler = (event, context, callback) => {
+exports.lambdaHandler = (event, context, callback) => {
+  console.log(event);
+  
   let payload = event.body;
   let id;
   let token = process.env.VERIFICATION_TOKEN;
@@ -59,8 +37,6 @@ module.exports.lambdaHandler = (event, context, callback) => {
 
   const slackEvent = payload.event;
   id = payload.team_id;
-  console.log(payload);
-  console.log(slackEvent);
 
   // Verification Token TODO: use signing secret and calculate hashes
   if (token && token !== payload.token)
@@ -70,7 +46,7 @@ module.exports.lambdaHandler = (event, context, callback) => {
   if (payload.challenge)
     return callback(null, payload.challenge);
   else
-    callback();
+    callback(null, generateSuccessfulResponse());
 
   // Ignore Bot Messages
   if (!(payload.event || payload).bot_id) {
@@ -79,8 +55,9 @@ module.exports.lambdaHandler = (event, context, callback) => {
 
   const sayFunc = msg => {
     let body = {
-      channel: "DUMANHCQL",
-      text: msg
+      channel: slackEvent.channel,
+      text: msg,
+      token: botToken
     };
 
     fetch('https://slack.com/api/chat.postMessage', {
@@ -90,7 +67,9 @@ module.exports.lambdaHandler = (event, context, callback) => {
         'Authorization': 'Bearer ' + botToken
       },
       body: JSON.stringify(body)
-    });
+    })
+    .then(result => result.text())
+    .then(text => console.log(text));
   };
 
   sayFunc('hello');

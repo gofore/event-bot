@@ -5,23 +5,21 @@ const {
 const { directMessage } = require("./helpers");
 const fetch = require('node-fetch');
 const {
-  eventRegistrations
+  getEventRegistrations
 } = require("./eventRegistrations");
 
-const eventName = requestSoonestEvent(Date.now());
-
-exports.registerEvents = (app, finish) => {
+exports.registerEvents = (app) => {
   
-  this.registereableMessageEvents = eventRegistrations(app, finish);
+  const registereableMessageEvents = getEventRegistrations(app);
 
-  const handleRegistreables =  (message, context) => {
+  const handleRegistreables = (message, context) => {
     const sayFunc =  msg => {
       let body = {
         channel: message.channel,
         text: msg
       };
-      
-       fetch('https://slack.com/api/chat.postMessage', {
+
+      fetch('https://slack.com/api/chat.postMessage', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -29,10 +27,10 @@ exports.registerEvents = (app, finish) => {
         },
         body: JSON.stringify(body)
       });
-      finish(null, 200);
     };
 
-    registereableMessageEvents.forEach( command => {
+    console.log(message);
+    registereableMessageEvents.forEach(command => {
       if (message.text.match(command.query)) {
         if(command.heavy){
            sayFunc(`Processing request ${command}...`);
@@ -43,18 +41,20 @@ exports.registerEvents = (app, finish) => {
     });
   }
 
-  app.event("app_mention",  ({ event, context, say }) => {
+  app.event("app_mention", ({ event, context, say }) => {
     const message = {
       text: event.text,
       channel: event.channel,
       user: event.user
     };
 
+    console.log(message);
     handleRegistreables(message, context);
     
   });
 
   app.message(directMessage,  ({ message, context, say }) => {
+    console.log(message);
     handleRegistreables(message, context);
   });
 

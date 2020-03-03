@@ -1,3 +1,5 @@
+'use strict';
+
 if (process.env.NODE_ENV !== 'production') {
   const dotEnv = require('dotenv');
   dotEnv.config({path:'.env'});
@@ -13,19 +15,31 @@ const expressReceiver = new ExpressReceiver({
   signingSecret: secret
 });
 
-const app = new App({
-  token: botToken,
-  receiver: expressReceiver
-});
-
-
-// ------------------------
-// AWS Lambda handler
-// ------------------------
-const awsServerlessExpress = require('aws-serverless-express');
-const server = awsServerlessExpress.createServer(expressReceiver.app);
-
-module.exports.lambdaHandler = (event, context, callback) => {
-    eventHandler.registerEvents(app, callback);
-    awsServerlessExpress.proxy(server, event, context);
+const makeAppWithToken = (token, expressReceiver) => {
+  return new App({
+    token: token,
+    receiver: expressReceiver
+  });
 }
+
+const makeAppWithOauth = expressReceiver => {
+  const oauth = { auth:""}; //require('./lib/oauth');
+  console.log('doing this');
+  const app = new App({
+    authorize: oauth.auth,
+    receiver: expressReceiver
+  });
+
+  oauth.install(expressReceiver.app, app.client);
+
+  return app;
+}
+
+const useAuth = (process.env.USE_OAUTH || false);
+const app = useAuth ?
+  makeAppWithOauth(expressReceiver) :
+  makeAppWithToken(botToken, expressReceiver);
+
+eventHandler.registerEvents(app);
+
+module.exports.lambdaHandler = require('serverless-http')(expressReceiver.app);

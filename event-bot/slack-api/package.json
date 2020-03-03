@@ -8,10 +8,9 @@
   "license": "MIT",
   "dependencies": {
     "@slack/bolt": "^1.6.0",
-    "aws-serverless-express": "^3.3.6",
     "dotenv": "^8.2.0",
     "node-fetch": "^2.6.0",
-    "webpack": "^4.42.0"
+    "serverless-http": "^2.3.2"
   },
   "scripts": {
     "test": "mocha tests/unit/",

@@ -16,6 +16,7 @@ const {
 const { registerVotingSaga } = require("./voteHandlingFunctions");
 const { createAskForTeam, createAskForVote } = require("./modalDefinitions");
 
+const eventName = requestSoonestEvent(Date.now());
 
 const splitMentionMessage = message => {
     let split = message.text.split(" ");
@@ -55,7 +56,7 @@ const helpMentioned = (app, say, events) => {
 }
 
 
-exports.registerEvents = (app, finish) => {
+exports.getEventRegistrations = (app) => {
   registerSaga(app);
   registerVotingSaga(app);
   const askForTeam = createAskForTeam(app);

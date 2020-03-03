@@ -1,22 +1,22 @@
-exports.createAsker = (app, requestFunction, requestData, mapLambda, blockBuilder, text) => (botToken, channel) => {
-  try {
+const Slack = require('slack');
+
+exports.createAsker = (requestFunction, requestData, mapLambda, blockBuilder) => (botToken, message) => {
     const items =  requestFunction(requestData).map(mapLambda);
     const blocks = blockBuilder(items).blocks;
-
-    const result =  app.client.chat.postMessage({
-      token: botToken,
-      channel: channel,
+    const params = {
+      token  : botToken,
+      channel: message.channel,
       blocks: blocks,
-      // Text in the notification
-      text: text
-    });
-  } catch (error) {
-    console.error(error);
-  }
+      text: 'blocks should be here',
+      user: message.user,
+      attachments: []
+    };
+
+    return Slack.chat.postEphemeral(params);
 }; 
 
 
-exports.createSelection = (selections, helpText, actionId, selectionPlaceHolder) =>{
+exports.createSelection = (selections, helpText, actionId, selectionPlaceHolder) => {
   return {
     blocks: [
       {

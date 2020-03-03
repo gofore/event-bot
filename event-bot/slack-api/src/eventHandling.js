@@ -1,62 +1,87 @@
-
-const {
-  homePageRegistering
-} = require("./registerHomePage");
-const { directMessage } = require("./helpers");
 const fetch = require('node-fetch');
 const {
   getEventRegistrations
 } = require("./eventRegistrations");
+const { handleVotingSaga } = require("./voteHandlingFunctions");
+const { handleScoringSaga } = require("./scoreHandlingFunctions");
+const Slack = require('slack');
+const {
+  teamActionId
+} = require("./modalDefinitions");
+const {
+  categoryActionId
+} = require("./modalDefinitions");
 
-exports.registerEvents = (app) => {
-  
-  const registereableMessageEvents = getEventRegistrations(app);
 
-  const handleRegistreables = (message, context) => {
-    const sayFunc =  msg => {
-      let body = {
-        channel: message.channel,
-        text: msg
-      };
+const asyncForEach = async (array, callback) => {
+  for (let index = 0; index < array.length; index++) {
+    await callback(array[index], index, array);
+  }
+};
 
-      fetch('https://slack.com/api/chat.postMessage', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + context.botToken
-        },
-        body: JSON.stringify(body)
-      });
-    };
-
-    console.log(message);
-    registereableMessageEvents.forEach(command => {
-      if (message.text.match(command.query)) {
-        if(command.heavy){
-           sayFunc(`Processing request ${command}...`);
-        }
-
-        command.lambda({ message, say: sayFunc, context });
+exports.handleActions = async (slackEvent, botToken) => {
+  console.log(slackEvent);
+  const handleAction = async () => {
+    await asyncForEach(slackEvent.actions, async (action) => {
+      switch (action.action_id) {
+        case teamActionId:
+          const result = await handleScoringSaga(slackEvent, botToken, action);
+          console.log(result);
+          break;
+        case categoryActionId:
+          await handleVotingSaga(slackEvent, botToken, action);
+          console.log(categoryActionId);
+          break;
       }
     });
+  };
+  handleAction();
+}
+
+
+const handleRegistreables = async (registereableMessageEvents, slackEvent, botToken) => {
+  const sayFunc = (message) => {
+    const params = {
+      token: botToken,
+      channel: slackEvent.channel,
+      text: message
+    };
+    return Slack.chat.postMessage(params);
+  };
+
+  const sayEphemeral = (message) => {
+    const params = {
+      token: botToken,
+      channel: slackEvent.channel,
+      text: message,
+      user: slackEvent.user,
+      attachments: []
+    }
+
+    return Slack.chat.postEphemeral(params);
   }
 
-  app.event("app_mention", ({ event, context, say }) => {
-    const message = {
-      text: event.text,
-      channel: event.channel,
-      user: event.user
-    };
+  const checkForMatchAndRun = async () => {
+    await asyncForEach(registereableMessageEvents, async command => {
+      if (slackEvent.text.match(command.query)) {
+        if (command.heavy) {
+          await sayEphemeral(`Processing request "${slackEvent.text}".`);
+        }
+        await command.lambda({ message: slackEvent, say: sayFunc, botToken, events: registereableMessageEvents });
+      }
+    });
+  };
+  try {
+    await checkForMatchAndRun();
+  } catch (error) {
+    console.error(error);
+  }
 
-    console.log(message);
-    handleRegistreables(message, context);
-    
-  });
+};
 
-  app.message(directMessage,  ({ message, context, say }) => {
-    console.log(message);
-    handleRegistreables(message, context);
-  });
 
-  homePageRegistering(app);
+exports.handleEvents = async (slackEvent, botToken) => {
+  const registereableMessageEvents = getEventRegistrations();
+
+  await handleRegistreables(registereableMessageEvents, slackEvent, botToken);
 };

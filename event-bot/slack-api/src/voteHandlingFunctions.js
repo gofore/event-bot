@@ -8,21 +8,20 @@ const {
 const {
   voteByCategoryId} = require("./databaseInterface");
 
+const Slack = require('slack');
 const scorePattern = /[0-9]+$/;
 
 
 
-exports.registerVotingSaga = app => {
-  app.action(categoryActionId,  ({ ack, body, context }) => {
-    // Acknowledge the select request
-    ack();
+exports.handleVotingSaga = (slackEvent, botToken, action)  => {
+    // ack();
 
     try {
       const { botToken } = context;
-      const { channel, message } = body;
+      const { channel, message } = slackEvent;
 
-      const { actions, trigger_id } = body;
-      const { selected_option } = actions[0];
+      const { actions, trigger_id } = slackEvent;
+      const { selected_option } = action;
       const selectedCategory = {
         id: selected_option.value,
         name: selected_option.text.text
@@ -30,20 +29,27 @@ exports.registerVotingSaga = app => {
 
       const modal = {
         ...giveCategoryModal(selectedCategory),
-        private_metadata: JSON.stringify({
+        private_metadata: {
           category: selectedCategory,
           channel_id: channel.id,
           message_ts: message.ts
-        })
+        }
       };
+
+      const params = {
+        token: botToken,
+        trigger_id,
+        view: JSON.stringify(modal)
+      }
+      console.log(params);
+      return Slack.views.open(params)
 
     } catch (error) {
       console.error(error);
     }
-  });
+}
 
-  // Listen for the game and score result.
-  app.view("setVoteModal",  ({ ack, view, context }) => {
+exports.handleModalInput = ({ ack, view, context }) => {
     try {
       const { botToken, user } = context;
       const {
@@ -88,5 +94,4 @@ exports.registerVotingSaga = app => {
     } catch (error) {
       console.error(error);
     }
-  });
 };

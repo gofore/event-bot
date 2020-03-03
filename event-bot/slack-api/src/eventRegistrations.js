@@ -9,11 +9,9 @@ const {
     voteImage
 } = require("./databaseInterface");
 const {
-  registerSaga,
   showAllGameScores,
   showSingleGamesScores
 } = require("./scoreHandlingFunctions");
-const { registerVotingSaga } = require("./voteHandlingFunctions");
 const { createAskForTeam, createAskForVote } = require("./modalDefinitions");
 
 const eventName = requestSoonestEvent(Date.now());
@@ -31,16 +29,14 @@ const splitMentionMessage = message => {
     return parseInt(stringFormattedNumber);
   };
   
-const sayTimeUntil = (say, millisecondsUntil) => {
-  const timeInDays = millisecondsUntil / 1000 / 60 / 60 / 24;
-  say(
-    `Time until event is ${millisecondsUntil} milliseconds or ${timeInDays.toFixed(
-      2
-    )} days`
+const sayTimeUntil = async (say, millisecondsUntil) => {
+  const timeInDays = (millisecondsUntil / 1000 / 60 / 60 / 24).toFixed(2);
+  await say(
+    `Time until event is ${millisecondsUntil} milliseconds or ${timeInDays} days`
   );
 };
 
-const helpMentioned = (app, say, events) => {
+const helpMentioned = async (say, events) => {
   let helpText =
     "My job is to inform you about event details and to allow participating in different event activities.\n";
 
@@ -52,43 +48,42 @@ const helpMentioned = (app, say, events) => {
 
   helpText +=
     "Currently I am configured to answer to @my-name commands only.\n";
-  say(helpText);
+  await say(helpText);
 }
 
 
-exports.getEventRegistrations = (app) => {
-  registerSaga(app);
-  registerVotingSaga(app);
-  const askForTeam = createAskForTeam(app);
-  const askForVote = createAskForVote(app);
+exports.getEventRegistrations = () => {
+  const askForTeam = createAskForTeam();
+  const askForVote = createAskForVote();
 
+  console.log(askForTeam);
   const registereableMessageEvents = [
     {
       query: /eta|ETA/,
-      lambda:  ({ message, say, context }) => {
+      lambda: async ({ say }) => {
         const timeUntil = timeUntilEvent(requestEventName()) - Date.now();
-        sayTimeUntil(say, timeUntil);
+        await sayTimeUntil(say, timeUntil);
       },
       help: "[eta] to see how much time left for the event."
     },
     {
       heavy: true,
       query: /score .+ .+ \d+$/,
-      lambda:  ({ message, say, context }) => {
+      lambda: async ({ message, say }) => {
         const params = splitMentionMessage(message);
         const gameName = params[1];
         const teamName = params[2];
         const score = parseInteger(params[3]);
         if (isNaN(score)) {
-          say(
+            await say(
             "The third parameter needs to be a number representing the score"
           );
           return;
         }
         if (saveScore(requestEventName(), gameName, teamName, score)) {
-          say(":+1:");
+            await say(":+1:");
         } else {
-          say("Score saving failed");
+            await say("Score saving failed");
         }
       },
       help:
@@ -96,41 +91,30 @@ exports.getEventRegistrations = (app) => {
     },
     {
       heavy: true,
-      query: /score .+$/,
-      lambda:  ({ message, say, context }) => {
-        say("Nice to meet you my old fiend. Let's score! :)");
-        try {
-        } catch (error) {
-          console.error(error);
-        }
-      }
-    },
-    {
-      heavy: true,
       query: /register .+/,
-      lambda:  ({ message, say, context }) => {
+      lambda: async ({ message, say }) => {
         const params = splitMentionMessage(message);
         const teamName = params[1];
         if (registerTeam(teamName)) {
-          say("Team registered succesfully with name " + teamName);
+            await say("Team registered succesfully with name " + teamName);
         } else {
-          say(`Name ${teamName} was not available`);
+            await say(`Name ${teamName} was not available`);
         }
       },
       help: "[register _teamName_} to register a team"
     },
     {
       query: /loc[ation]{0,5}$/,
-      lambda:  ({ say, context }) => {
+      lambda: async ({ say }) => {
         const locationLink = locationOfEvent(requestEventName());
-        say(`${locationLink}`);
+        await say(`${locationLink}`);
       },
       help: "[location] shows where the event is located."
     },
     {
       heavy: true,
       query: /tops?$/,
-      lambda:  ({ message, say, context }) => {
+      lambda: async ({ message, say }) => {
         showAllGameScores(say, 5);
       },
       help: "[top] or [tops] lists the top 5 teams of every game."
@@ -138,8 +122,7 @@ exports.getEventRegistrations = (app) => {
     {
       heavy: true,
       query: /tops? [\d].*/,
-      lambda:  ({ message, say, context }) => {
-        //Message should always be '@bot top number'
+      lambda: async ({ message, say }) => {
         const params = splitMentionMessage(message);
         const topsRequested = parseInteger(params[1]);
         const gameRequestedSpliceParameters = params.splice(2);
@@ -158,13 +141,13 @@ exports.getEventRegistrations = (app) => {
     {
       heavy: true,
       query: /vote .+ \d+/,
-      lambda:  ({ message, say, context }) => {
+      lambda: async ({ message, say }) => {
         const params = splitMentionMessage(message);
         const categoryName = params[1];
         const imageNumber = parseInteger(params[2]);
         const { user } = message;
         if (voteImage(requestEventName(), categoryName, user, imageNumber)) {
-          say("You voted image succesfully");
+            await say("You voted image succesfully");
         }
       },
       help:
@@ -173,7 +156,7 @@ exports.getEventRegistrations = (app) => {
     {
       heavy: true,
       query: /end/,
-      lambda:  ({ message, say, context }) => {
+      lambda: async ({ message, say }) => {
         const params = splitMentionMessage(message);
         let location = null;
         if (params.length > 1) {
@@ -181,25 +164,23 @@ exports.getEventRegistrations = (app) => {
         }
         const timeUntil =
           timeUntilEventEnd(requestEventName(), location) - Date.now();
-        sayTimeUntil(say, timeUntil);
+        await sayTimeUntil(say, timeUntil);
       },
       help:
         "[end] or [end _location_] can be used to showcase ending time of event for a certain travel destination if provided"
     },
     {
       query: /help/,
-      lambda:  ({ message, say, context }) => {
-        helpMentioned(app, say, this.registereableMessageEvents);
+      lambda: async ({ say, events }) => {
+        await helpMentioned(say, events);
       },
       help: "[help] informs user with all the possible commands available."
     },
     {
       heavy: true,
       query: /score$/,
-      lambda:  ({ say, message, context }) => {
-        const { botToken } = context;
-        const { channel } = message;
-         askForTeam(botToken, channel);
+      lambda: async ({ say, message, botToken }) => {
+        await askForTeam(botToken, message);
       },
       help:
         "[score] starts dialog with the user to ask the necessary information for submitting score. USE THIS!"
@@ -207,10 +188,8 @@ exports.getEventRegistrations = (app) => {
     {
       heavy: true,
       query: /vote$/,
-      lambda:  ({ say, message, context }) => {
-        const { botToken } = context;
-        const { channel } = message;
-         askForVote(botToken, channel);
+      lambda: async ({ say, message, botToken }) => {
+        await askForVote(botToken, message);
       },
       help: "[vote] starts dialog with user to define category and number to vote on."
     }

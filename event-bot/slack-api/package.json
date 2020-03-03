@@ -7,9 +7,9 @@
   "author": "Tero Paavolainen",
   "license": "MIT",
   "dependencies": {
-    "aws-sdk": "^2.631.0",
     "dotenv": "^8.2.0",
     "node-fetch": "^2.6.0",
+    "querystring": "^0.2.0",
     "slack": "^11.0.2"
   },
   "scripts": {

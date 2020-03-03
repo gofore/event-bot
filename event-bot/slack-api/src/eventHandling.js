@@ -20,7 +20,7 @@ exports.registerEvents = (app, finish) => {
         channel: message.channel,
         text: msg
       };
-      console.log(body);
+      
        fetch('https://slack.com/api/chat.postMessage', {
         method: 'POST',
         headers: {

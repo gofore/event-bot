@@ -61,7 +61,6 @@ exports.registerEvents = (app, finish) => {
   const askForTeam = createAskForTeam(app);
   const askForVote = createAskForVote(app);
 
-  //This is a bit unreadable but will in the future allow using the same lambdas for multiple different event listeners
   const registereableMessageEvents = [
     {
       query: /eta|ETA/,

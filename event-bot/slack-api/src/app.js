@@ -1,77 +1,103 @@
 'use strict';
-const fetch = require('node-fetch');
+
+const AWS   = require('aws-sdk');
+const Slack = require('slack');
 
 const secret = process.env.SLACK_SIGNING_SECRET || '1111111111111111111111111';
 const botToken = process.env.SLACK_BOT_TOKEN || 'xoxb-werwer-werwer-werw-erwer-werwre';
+const verificationToken = process.env.VERIFICATION_TOKEN;
 
-const generateSuccessfulResponse = () =>{
-     const responseBody = {
+module.exports.lambdaHandler = async ( data ) => 
+{
+    const dataObject = JSON.parse( data.body );
+
+    // The response we will return to Slack
+    let response = {
+        statusCode: 200,
+        body      : {},
+        // Tell slack we don't want retries, to avoid multiple triggers of this lambda
+        headers   : { 'X-Slack-No-Retry': 1 }
     };
 
-    const response = {
-        "statusCode": 200,
-        "headers": {
-        },
-        "body": JSON.stringify(responseBody),
-        "isBase64Encoded": false
-    };
-    return response;
+    try {
+        if ( !( 'X-Slack-Retry-Num' in data.headers ) )
+        {
+            switch ( dataObject.type ) 
+            {
+                case 'event_callback':
+                    await handleMessage( dataObject.event );
+                    response.body = { ok: true }; 
+                    break;
+                default:
+                    response.statusCode = 400,
+                    response.body = 'Empty request';
+                    break;
+            }
+        }
+    }
+    catch( err ) 
+    {
+        response.statusCode = 500,
+        response.body = JSON.stringify( err )
+    } 
+    finally 
+    {
+        return response;
+    }   
 }
-// eventHandler.registerEvents(app);
 
-exports.lambdaHandler = (event, context, callback) => {
-  console.log(event);
-  
-  let payload = event.body;
-  let id;
-  let token = process.env.VERIFICATION_TOKEN;
+/**
+ * Verifies the URL with a challenge - https://api.slack.com/events/url_verification
+ * @param  {Object} data The event data
+ */
+function verifyCall( data )
+{
+    if ( data.token === verificationToken ) 
+    {
+        return data.challenge;
+    }
+    else {
+        throw 'Verification failed';
+    }
+}
 
-  // Interactive Messages
-  if (payload.payload) {
-    payload = JSON.parse(payload.payload);
-  }
-  else{
-    payload = JSON.parse(payload);
-    
-  }
+async function handleMessage( slackEvent )
+{
+    // Makes sure the bot was actually mentioned
+    if ( !slackEvent.bot_id )
+    {
+        // Gets the command from the message
+        let command = parseMessage( slackEvent.text );
 
-  const slackEvent = payload.event;
-  id = payload.team_id;
+        // Executes differend commands based in the specified instruction
+        switch ( command ) 
+        {
+            // case 'invalidate_cdn':
+            //     const invalidationData = await invalidateDistribution();
+            //     await sendSlackMessage( slackEvent.channel, 
+            //         `Sir/Madam, I've just invalidated the cache, this is the invalidation ID. *${invalidationData.Invalidation.Id}*` );
+            //     break;
+            default:
+                await sendSlackMessage( slackEvent.channel, 
+                    `Hello sir, Maybe this one will work finally.` );
+                break;
+        }
+    }
+}
 
-  // Verification Token TODO: use signing secret and calculate hashes
-  if (token && token !== payload.token)
-    return context.fail("[401] Unauthorized");
 
-  // Events API challenge
-  if (payload.challenge)
-    return callback(null, payload.challenge);
-  else
-    callback(null, generateSuccessfulResponse());
-
-  // Ignore Bot Messages
-  if (!(payload.event || payload).bot_id) {
-    return;
-  }
-
-  const sayFunc = msg => {
-    let body = {
-      channel: slackEvent.channel,
-      text: msg,
-      token: botToken
+function sendSlackMessage( channel, message )
+{
+    const params = {
+        token  : botToken,
+        channel: channel,
+        text   : message
     };
 
-    fetch('https://slack.com/api/chat.postMessage', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + botToken
-      },
-      body: JSON.stringify(body)
-    })
-    .then(result => result.text())
-    .then(text => console.log(text));
-  };
+    return Slack.chat.postMessage(params);
+}
 
-  sayFunc('hello');
-
-};
+function parseMessage(message)
+{
+    return message.split( ' ', 2 ).pop();
+}

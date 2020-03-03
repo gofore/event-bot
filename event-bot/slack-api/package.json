@@ -7,10 +7,10 @@
   "author": "Tero Paavolainen",
   "license": "MIT",
   "dependencies": {
-    "@slack/bolt": "^1.6.0",
+    "aws-sdk": "^2.631.0",
     "dotenv": "^8.2.0",
     "node-fetch": "^2.6.0",
-    "serverless-http": "^2.3.2"
+    "slack": "^11.0.2"
   },
   "scripts": {
     "test": "mocha tests/unit/",

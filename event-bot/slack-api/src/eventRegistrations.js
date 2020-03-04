@@ -17,7 +17,7 @@ const { createAskForTeam, createAskForVote } = require("./modalDefinitions");
 const eventName = requestSoonestEvent(Date.now());
 
 const splitMentionMessage = message => {
-  let split = message.text.split(" ");
+  let split = message.text.match(/("[^"]+"|[^"\s]+)/g);
   if (split[0].includes("@")) {
     split = split.slice(1);
   }
@@ -82,7 +82,7 @@ exports.getEventRegistrations = () => {
     {
       heavy: true,
       query: /score .+ .+ \d+$/,
-      lambda: async ({ message, say }) => {
+      lambda: async ({ message, say, sayEphemeral }) => {
         const params = splitMentionMessage(message);
         const gameName = params[1];
         const teamName = params[2];
@@ -97,7 +97,7 @@ exports.getEventRegistrations = () => {
         if (checkDBConnectionSuccess(resultPackage)) {
           await say(":+1:");
         } else {
-          await say("Score saving failed");
+          await sayEphemeral("Score saving failed");
         }
       },
       help:
@@ -106,7 +106,7 @@ exports.getEventRegistrations = () => {
     {
       heavy: true,
       query: /register .+/,
-      lambda: async ({ message, say }) => {
+      lambda: async ({ message, say, sayEphemeral }) => {
         const params = splitMentionMessage(message);
         const teamName = params[1];
         const resultPackage = await registerTeam(teamName);
@@ -114,7 +114,7 @@ exports.getEventRegistrations = () => {
         if (checkDBConnectionSuccess(resultPackage)) {
           await say("Team registered succesfully with name " + teamName);
         } else {
-          await say(`Name ${teamName} was not available`);
+          await sayEphemeral(`Name ${teamName} was not available`);
         }
       },
       help: "[register _teamName_} to register a team"
@@ -162,18 +162,21 @@ exports.getEventRegistrations = () => {
     {
       heavy: true,
       query: /vote .+ \d+/,
-      lambda: async ({ message, say }) => {
+      lambda: async ({ message, say, sayEphemeral }) => {
         const params = splitMentionMessage(message);
         const categoryName = params[1];
         const imageNumber = parseInteger(params[2]);
         const { user } = message;
         const resultPackage = await voteImage(requestEventName(), categoryName, user, imageNumber);
         if (checkDBConnectionSuccess(resultPackage)) {
-          await say("You voted image succesfully");
+          await say(`Image ${imageNumber} voted succesfully`);
+        }
+        else{
+          await sayEphemeral("Vote couldn't be processed succesfully");
         }
       },
       help:
-        "[vote _number_] allows you to register your vote for a image. Number is the image you wish to vote for."
+        "[vote _categoryName_ _number_] allows you to register your vote for a image. Number is the image you wish to vote for."
     },
     {
       heavy: true,

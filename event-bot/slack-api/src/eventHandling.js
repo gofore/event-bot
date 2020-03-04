@@ -84,7 +84,7 @@ const handleRegistreables = async (registereableMessageEvents, slackEvent, botTo
 
           await sayEphemeral(`Processing request "${slackEvent.text}".`);
         }
-        await command.lambda({ message: slackEvent, say: sayFunc, botToken, events: registereableMessageEvents });
+        await command.lambda({ message: slackEvent, say: sayFunc, botToken, events: registereableMessageEvents, sayEphemeral });
       }
     });
   };

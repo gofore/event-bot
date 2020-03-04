@@ -1,25 +1,34 @@
 const mysql = require('mysql');
-const {promisify} = require('util');
+const { promisify } = require('util');
 
 const isLogging = false;
 
-exports.DatabaseConnection = class DatabaseConnection{
+exports.DatabaseConnection = class DatabaseConnection {
 
-    constructor(){
+    constructor() {
         this.connection = mysql.createConnection({
-            host: 'localhost',
+            host: 'event-db.cyocfpjf05my.eu-west-1.rds.amazonaws.com',
             // ssl: 'fetchThisStill',
-            user: 'dev',
-            password: '',
-            database: 'event_db_singular'
+            user: 'admin',
+            password: process.env.DB_PASSWORD,
+            database: 'eventdb'
         });
 
         this.connection.query[promisify.custom] = (query, queryParams) => new Promise((resolve, reject) => {
+            if (process.env.DEBUG_LOGS) {
+                console.log(`Starting query ${query}`);
+            }
             this.connection.query(query, queryParams, (err, results, fields) => {
-                if(err){
+                if (err) {
+                    if (process.env.DEBUG_LOGS) {
+                        console.error(err);
+                    }
                     reject(err);
                 }
-                else{
+                else {
+                    if (process.env.DEBUG_LOGS) {
+                        console.log('Query succeeded');
+                    }
                     resolve(results);
                 }
             })
@@ -27,13 +36,35 @@ exports.DatabaseConnection = class DatabaseConnection{
         this.queryWithPromise = promisify(this.connection.query);
     }
 
+
+    startConnection = () => {
+        this.connection.connect(err => {
+            if (process.env.DEBUG_LOGS) {
+                console.error(err);
+            }
+        });
+    }
+
+
+    /**
+     * If you use start connection, also dispose it with endConnection, connections can be started implicitly too
+     */
+    endConnection = () => {
+        this.connection.end(err => {
+            if (process.env.DEBUG_LOGS) {
+                console.error(err);
+            }
+        })
+    }
+
+
     doQuery = (query, queryParams) => {
         //This does not require open and end. Hopefully it still ends with promise too..
         return this.queryWithPromise(query, queryParams);
     }
 
 
-    findSoonestEvent(){
+    findSoonestEvent() {
         return this.doQuery(`
             SELECT event_name, long_name, starting_date 
             FROM event
@@ -42,29 +73,29 @@ exports.DatabaseConnection = class DatabaseConnection{
 
 
     queryTimeUntilEventEnd = (eventName, optionalLocation) => {
-        if(Boolean(optionalLocation)){
+        if (Boolean(optionalLocation)) {
             return this.doQuery(`
                 SELECT e
                 FROM ending e
                 INNER JOIN event ev
                     USING (event_id)
-                WHERE ev.event_name = ? AND e.location = ?`,[eventName, optionalLocation]);
+                WHERE ev.event_name = ? AND e.location = ?`, [eventName, optionalLocation]);
         }
-        else{
+        else {
             return this.doQuery(`
                 SELECT e.e
                 FROM ending e
                 INNER JOIN event ev
                     USING (event_id)
-                WHERE ev.event_name = ? AND e.location = ''`,[eventName]);
+                WHERE ev.event_name = ? AND e.location = ''`, [eventName]);
         }
     };
-    
+
 
     queryDateFor = (eventName) => {
         return this.doQuery("SELECT e.starting_date FROM event e WHERE e.event_name = ?", [eventName]);
     }
-    
+
 
     saveScoreById = (eventName, gameId, teamId, score) => {
         return this.doQuery(`
@@ -94,7 +125,7 @@ exports.DatabaseConnection = class DatabaseConnection{
             WHERE t.team_name = ? AND g.game_name = ? AND e.event_name = ?
                 ON DUPLICATE KEY UPDATE score = VALUES(score)`, [score, teamName, gameName, eventName]);
     }
-    
+
 
     voteFor = (eventName, categoryName, slackId, imageNumber) => {
         return this.doQuery(`
@@ -150,9 +181,9 @@ exports.DatabaseConnection = class DatabaseConnection{
                     USING(event_id)
                 WHERE team_name = ? AND event_name = ?
             ) LIMIT 1`, [teamName, eventName, teamName, eventName]);
-    } 
+    }
 
-    
+
 
     requestAllGames = (eventName) => {
         return this.doQuery(`
@@ -185,7 +216,7 @@ exports.DatabaseConnection = class DatabaseConnection{
             WHERE t.team_name = ?`, [eventName, teamName]);
     }
 
-    
+
     requestTopScoreFor = (eventName, gameName) => {
         return this.doQuery(`
             SELECT t.team_id, t.team_name, tg.score
@@ -202,8 +233,8 @@ exports.DatabaseConnection = class DatabaseConnection{
         `, [gameName, eventName])
     }
 
-    
-    requestAllTopScores = function(eventName){
+
+    requestAllTopScores = function (eventName) {
         return this.doQuery(`
             SELECT t.team_name, g.game_name, tg.score
             FROM team_game tg
@@ -220,7 +251,7 @@ exports.DatabaseConnection = class DatabaseConnection{
     };
 
 
-    requestCorrectAnswerSetFor = (eventName, gameName,) => {
+    requestCorrectAnswerSetFor = (eventName, gameName, ) => {
         return this.doQuery(`
             SELECT json_answerset
             FROM correct_answer ca

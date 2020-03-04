@@ -20,7 +20,10 @@ const asyncForEach = async (array, callback) => {
 };
 
 exports.handleActions = async (slackEvent, botToken) => {
-  console.log(slackEvent);
+  if(process.env.DEBUG_LOGS){
+    console.log(`Handling Action ${slackEvent}`);
+  }
+  
   const handleAction = async () => {
     await asyncForEach(slackEvent.actions, async (action) => {
       switch (action.action_id) {

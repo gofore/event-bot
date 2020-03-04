@@ -8,6 +8,7 @@
   "license": "MIT",
   "dependencies": {
     "dotenv": "^8.2.0",
+    "mysql": "^2.18.1",
     "node-fetch": "^2.6.0",
     "querystring": "^0.2.0",
     "slack": "^11.0.2"

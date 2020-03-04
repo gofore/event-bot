@@ -1,113 +1,93 @@
-// const databaseConnection = require('./mysqlDatabaseConnection');
+const {DatabaseConnection} = require('./mysqlDatabaseConnection');
 
 const eventName = "hw";
 
+const connection = new DatabaseConnection();
 
+//TODO: a way to make the functions more like each other without doing await in each function since the caller can do that as well.
 exports.timeUntilEventEnd = (eventName, optionalLocation) => {
-    if(Boolean(optionalLocation)){
-        return new Date('2020-03-30T22:00:00');
-    }
-    return new Date('2020-03-30T24:00:00');
+    return connection.queryTimeUntilEventEnd(eventName, optionalLocation);
 };
 
 
-exports.timeUntilEvent = function(eventName){
-    return new Date('2020-03-30T16:00:00');
+exports.timeUntilEvent = (eventName) => {
+    return connection.queryDateFor(eventName);
 };
 
 
-exports.saveScore = function(eventName, gameName, teamName, score){
-    if(!exports.doesTeamExist(eventName, teamName)){
-        exports.registerTeam(eventName, teamName);
+exports.saveScoreById = async (eventName, gameId, teamId, score) => {
+    return connection.saveScoreById(eventName, gameId, teamId, score);
+}
+
+
+exports.saveScore = async (eventName, gameName, teamName, score) => {
+    const exists = await exports.doesTeamExist(eventName, teamName); 
+    if(!exists){
+        await exports.registerTeam(eventName, teamName);
     }
 
-    return true;
+    return connection.saveScore(eventN, gameName, teamName, score);
 };
 
 
 exports.voteImage = (eventName, categoryName, slackId, imageNumber) => {
-    return true;
+    return connection.voteFor(eventName, categoryName, slackId, imageNumber);
 }
 
 exports.requestAllCategories = (eventName) => {
-    return [{ category_id: 1, category_name: 'Asia asu' }, { category_id: 2, category_name: 'Ei tod asu' }];
+    return connection.requestAllCategories(eventName);
 }
 
 exports.voteByCategoryId = (categoryId, slackId, imageNumber) => {
-    return true;
+    return connection.voteById(categoryId, slackId, imageNumber);
 }
 
 
 exports.requestSoonestEvent = (date) => {
-    return "hw";
+    return connection.findSoonestEvent();
 };
 
 
 exports.locationOfEvent = (eventName) => {
-    return 'https://goo.gl/maps/QoBwqdFx8rqe2Gpb9';
+    return connection.requestEventLocation(eventName);
 };
 
 
-
-exports.requestTopScore = (eventName, gameName, scoreFor) => {
-    return [ { 
-        team_id: 2,
-        team_name: 'Huuhkajat',
-        score: 1324
-      },
-      {
-        team_id: 1,
-        team_name: 'Testaajat',
-        score: 1212
-      },
-    {
-        team_id: 3,
-        team_name: 'Muuntajat',
-        score: 728
-      }];
-};
-
-
-exports.requestAllScores = (eventName) => {
-    return [ {
-        team_name: 'Huuhkajat',
-        game_name: 'Speden spelit',
-        score: 1462
-      },
-      {
-        team_name: 'Testaajat',
-        game_name: 'Speden spelit',
-        score: 1212
-      },
-      {
-        team_name: 'Muuntajat',
-        game_name: 'Hula hula',
-        score: 649
-      }];
+exports.requestAllTopScores = async (eventName, scoreFor) => {
+    const results = await connection.requestAllTopScores(eventName);
+    if(scoreFor){
+        return results.slice(0, scoreFor - 1);
+    }
+    return results;
 }
 
 
-exports.doesTeamExist = (eventName, teamName) => {
-    return false;
+exports.requestTopScore = async (eventName, gameName, scoreFor) => {
+    const scores = await connection.requestTopScoreFor(eventName, gameName);
+    return scores.slice(0, scoreFor - 1);
+}
+
+exports.doesTeamExist = async (eventName, teamName) => {
+    return await connection.findTeamsWithName(eventName, teamName).length > 0;
 };
 
 
 exports.registerTeam = (eventName, teamName) => {
-
-    return true;
+    return connection.registerTeam(eventName, teamName);
 };
 
 
-exports.requestAllGames = function(eventName){
-    return [ { game_id: 1, game_name: 'speden spelit' }, { game_id: 2, game_name: 'mega mäiske' }, { game_id: 3, game_name: 'aivan jotain muuta' } ];
+exports.requestAllGames = (eventName) => {
+    return connection.requestAllGames(eventName);
 };
 
 
-exports.requestAllTeams = function(eventName){
-    return [{ team_id: 1, team_name: 'Huuhkajat' }, { team_id: 2, team_name: 'Mörrit' }];
-}
-
-
-exports.requestEventName = function(){
+exports.requestEventName = ()=>{
+    //TODO: this is not fully developed to work proper
     return eventName;
 };
+
+
+exports.requestAllTeams = (eventName) => {
+    return connection.requestAllTeams(eventName);
+}

@@ -6,7 +6,7 @@ const {
   teamActionId
 } = require("./modalDefinitions");
 const {
-  requestAllScores,
+  requestAllTopScores,
   requestAllGames,
   saveScore,
   requestEventName,
@@ -125,8 +125,8 @@ const stringifyScores = scorePackage => {
   return scores;
 }
 
-exports.showSingleGamesScores = (say, gameRequested, topsRequested) => {
-  const scorePackage = requestTopScore(
+exports.showSingleGamesScores = async (say, gameRequested, topsRequested) => {
+  const scorePackage = await requestTopScore(
     requestEventName(),
     gameRequested,
     topsRequested
@@ -134,19 +134,19 @@ exports.showSingleGamesScores = (say, gameRequested, topsRequested) => {
 
   if (Boolean(scorePackage)) {
     const scores = stringifyScores(scorePackage);
-    say(`Tops are for ${gameRequested}:\n${scores}`);
+    await say(`Tops are for ${gameRequested}:\n${scores}`);
   } else {
-    say("Top list was not able to be retreived with the parameters given");
+    await say("Top list was not able to be retreived with the parameters given");
   }
 };
 
-exports.showAllGameScores = (say) => {
+exports.showAllGameScores = async (say) => {
   // const games = requestAllGames(requestEventName());
 
   // games.forEach(element => {
   //   exports.showSingleGamesScores(say, element.name, topsRequested);
   // });
-  const scorePackage = requestAllScores(requestEventName());
+  const scorePackage = await requestAllTopScores(requestEventName());
   const scores = stringifyScores(scorePackage);
-  say(`Scores are:\n${scores}`);
+  await say(`Scores are:\n${scores}`);
 };

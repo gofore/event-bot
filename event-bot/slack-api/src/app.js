@@ -9,7 +9,10 @@ const botToken = process.env.SLACK_BOT_TOKEN || 'xoxb-werwer-werwer-werw-erwer-w
 const verificationToken = process.env.VERIFICATION_TOKEN;
 
 module.exports.lambdaHandler = async (data) => {
-  console.log(data);
+  if(process.env.DEBUG_LOGS){
+    console.log(data);
+  }
+  
   let dataObject;
   if (data.body.includes('payload=')) {
     dataObject = JSON.parse(querystring.parse(data.body).payload);

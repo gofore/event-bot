@@ -1,12 +1,12 @@
 const {
-    timeUntilEvent,
-    timeUntilEventEnd,
-    saveScore,
-    requestEventName,
-    registerTeam,
-    locationOfEvent,
-    requestSoonestEvent,
-    voteImage
+  timeUntilEvent,
+  timeUntilEventEnd,
+  saveScore,
+  requestEventName,
+  registerTeam,
+  locationOfEvent,
+  requestSoonestEvent,
+  voteImage
 } = require("./databaseInterface");
 const {
   showAllGameScores,
@@ -17,18 +17,18 @@ const { createAskForTeam, createAskForVote } = require("./modalDefinitions");
 const eventName = requestSoonestEvent(Date.now());
 
 const splitMentionMessage = message => {
-    let split = message.text.split(" ");
-    if (split[0].includes("@")) {
-      split = split.slice(1);
-    }
-    return split;
-  };
-  
-  const parseInteger = stringFormattedNumber => {
-    //TODO: safeguards
-    return parseInt(stringFormattedNumber);
-  };
-  
+  let split = message.text.split(" ");
+  if (split[0].includes("@")) {
+    split = split.slice(1);
+  }
+  return split;
+};
+
+const parseInteger = stringFormattedNumber => {
+  //TODO: safeguards
+  return parseInt(stringFormattedNumber);
+};
+
 const sayTimeUntil = async (say, millisecondsUntil) => {
   const timeInDays = (millisecondsUntil / 1000 / 60 / 60 / 24).toFixed(2);
   await say(
@@ -52,16 +52,21 @@ const helpMentioned = async (say, events) => {
 }
 
 
+const checkDBConnectionSuccess = (resultPackage) => {
+  //TODO: actually checking something meaningful from this!
+  return true;
+}
+
+
 exports.getEventRegistrations = () => {
   const askForTeam = createAskForTeam();
   const askForVote = createAskForVote();
 
-  console.log(askForTeam);
   const registereableMessageEvents = [
     {
       query: /eta|ETA/,
       lambda: async ({ say }) => {
-        const timeUntil = timeUntilEvent(requestEventName()) - Date.now();
+        const timeUntil = await timeUntilEvent(requestEventName()) - Date.now();
         await sayTimeUntil(say, timeUntil);
       },
       help: "[eta] to see how much time left for the event."
@@ -75,15 +80,16 @@ exports.getEventRegistrations = () => {
         const teamName = params[2];
         const score = parseInteger(params[3]);
         if (isNaN(score)) {
-            await say(
+          await say(
             "The third parameter needs to be a number representing the score"
           );
           return;
         }
-        if (saveScore(requestEventName(), gameName, teamName, score)) {
-            await say(":+1:");
+        const resultPackage = await saveScore(requestEventName(), gameName, teamName, score);
+        if (checkDBConnectionSuccess(resultPackage)) {
+          await say(":+1:");
         } else {
-            await say("Score saving failed");
+          await say("Score saving failed");
         }
       },
       help:
@@ -95,10 +101,11 @@ exports.getEventRegistrations = () => {
       lambda: async ({ message, say }) => {
         const params = splitMentionMessage(message);
         const teamName = params[1];
-        if (registerTeam(teamName)) {
-            await say("Team registered succesfully with name " + teamName);
+        const resultPackage = await registerTeam(teamName);
+        if (checkDBConnectionSuccess(resultPackage)) {
+          await say("Team registered succesfully with name " + teamName);
         } else {
-            await say(`Name ${teamName} was not available`);
+          await say(`Name ${teamName} was not available`);
         }
       },
       help: "[register _teamName_} to register a team"
@@ -106,7 +113,7 @@ exports.getEventRegistrations = () => {
     {
       query: /loc[ation]{0,5}$/,
       lambda: async ({ say }) => {
-        const locationLink = locationOfEvent(requestEventName());
+        const locationLink = await locationOfEvent(requestEventName());
         await say(`${locationLink}`);
       },
       help: "[location] shows where the event is located."
@@ -127,13 +134,13 @@ exports.getEventRegistrations = () => {
         const topsRequested = parseInteger(params[1]);
         const gameRequestedSpliceParameters = params.splice(2);
         if (gameRequestedSpliceParameters.length > 0) {
-          showSingleGamesScores(
+          await showSingleGamesScores(
             say,
             gameRequestedSpliceParameters.join(" "),
             topsRequested
           );
         } else {
-          showAllGameScores(say, topsRequested);
+          await showAllGameScores(say, topsRequested);
         }
       },
       help: `[top _number_] or [tops _number_ _gameName_]. Shows top scores for all the matching games.`
@@ -146,8 +153,10 @@ exports.getEventRegistrations = () => {
         const categoryName = params[1];
         const imageNumber = parseInteger(params[2]);
         const { user } = message;
-        if (voteImage(requestEventName(), categoryName, user, imageNumber)) {
-            await say("You voted image succesfully");
+        const resultPackage = await voteImage(requestEventName(), categoryName, user, imageNumber);
+
+        if (checkDBConnectionSuccess(resultPackage)) {
+          await say("You voted image succesfully");
         }
       },
       help:
@@ -163,7 +172,7 @@ exports.getEventRegistrations = () => {
           location = params[1];
         }
         const timeUntil =
-          timeUntilEventEnd(requestEventName(), location) - Date.now();
+         await timeUntilEventEnd(requestEventName(), location) - Date.now();
         await sayTimeUntil(say, timeUntil);
       },
       help:

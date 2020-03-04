@@ -11,8 +11,27 @@ exports.DatabaseConnection = class DatabaseConnection {
             // ssl: 'fetchThisStill',
             user: 'admin',
             password: process.env.DB_PASSWORD,
+            connectTimeout: 100000,
             database: 'eventdb'
         });
+
+        this.connection.connect[promisify.custom] = err => new Promise((resolve, reject) => {
+            if(err){
+                throw err;
+            }
+            else{
+                resolve();
+            }
+        });
+
+        this.connection.end[promisify.custom] = err => new Promise((resolve, reject) => {
+            if(err){
+                throw err;
+            }
+            else{
+                resolve();
+            }
+        })
 
         this.connection.query[promisify.custom] = (query, queryParams) => new Promise((resolve, reject) => {
             if (process.env.DEBUG_LOGS) {
@@ -23,7 +42,7 @@ exports.DatabaseConnection = class DatabaseConnection {
                     if (process.env.DEBUG_LOGS) {
                         console.error(err);
                     }
-                    reject(err);
+                    throw err;
                 }
                 else {
                     if (process.env.DEBUG_LOGS) {
@@ -34,15 +53,18 @@ exports.DatabaseConnection = class DatabaseConnection {
             })
         });
         this.queryWithPromise = promisify(this.connection.query);
+        this.connect = promisify(this.connection.connect);
+        this.end = promisify(this.connection.end);
+    }
+
+
+    destroyConnection = () => {
+        this.connection.destroy();
     }
 
 
     startConnection = () => {
-        this.connection.connect(err => {
-            if (process.env.DEBUG_LOGS) {
-                console.error(err);
-            }
-        });
+        return this.connect();
     }
 
 
@@ -50,16 +72,11 @@ exports.DatabaseConnection = class DatabaseConnection {
      * If you use start connection, also dispose it with endConnection, connections can be started implicitly too
      */
     endConnection = () => {
-        this.connection.end(err => {
-            if (process.env.DEBUG_LOGS) {
-                console.error(err);
-            }
-        })
+        return this.end();
     }
 
 
     doQuery = (query, queryParams) => {
-        //This does not require open and end. Hopefully it still ends with promise too..
         return this.queryWithPromise(query, queryParams);
     }
 
@@ -75,7 +92,7 @@ exports.DatabaseConnection = class DatabaseConnection {
     queryTimeUntilEventEnd = (eventName, optionalLocation) => {
         if (Boolean(optionalLocation)) {
             return this.doQuery(`
-                SELECT e
+                SELECT e.location_from, e.end_time
                 FROM ending e
                 INNER JOIN event ev
                     USING (event_id)
@@ -83,7 +100,7 @@ exports.DatabaseConnection = class DatabaseConnection {
         }
         else {
             return this.doQuery(`
-                SELECT e.e
+                SELECT e.location_from, e.end_time
                 FROM ending e
                 INNER JOIN event ev
                     USING (event_id)

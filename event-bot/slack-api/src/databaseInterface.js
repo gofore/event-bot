@@ -1,17 +1,25 @@
 const {DatabaseConnection} = require('./mysqlDatabaseConnection');
 
-const eventName = "hw";
+const constEventName = "hw";
 
 const connection = new DatabaseConnection();
 
-//TODO: a way to make the functions more like each other without doing await in each function since the caller can do that as well.
-exports.timeUntilEventEnd = (eventName, optionalLocation) => {
-    return connection.queryTimeUntilEventEnd(eventName, optionalLocation);
+exports.timeUntilEventEnd = async (eventName, optionalLocation) => {
+    return connection.queryTimeUntilEventEnd(eventName, optionalLocation)[0].end_time;
 };
 
 
-exports.timeUntilEvent = (eventName) => {
-    return connection.queryDateFor(eventName);
+exports.timeUntilEvent = async (eventName) => {
+    try {
+        await connection.startConnection();
+        const result = await connection.queryDateFor(eventName);
+        connection.endConnection();
+        return result[0].starting_date;
+    } catch (error) {
+        console.error(error);
+    }
+
+    return null;
 };
 
 
@@ -26,7 +34,7 @@ exports.saveScore = async (eventName, gameName, teamName, score) => {
         await exports.registerTeam(eventName, teamName);
     }
 
-    return connection.saveScore(eventN, gameName, teamName, score);
+    return connection.saveScore(eventName, gameName, teamName, score);
 };
 
 
@@ -48,8 +56,15 @@ exports.requestSoonestEvent = (date) => {
 };
 
 
-exports.locationOfEvent = (eventName) => {
-    return connection.requestEventLocation(eventName);
+exports.locationOfEvent = async (eventName) => {
+    const result = await connection.requestEventLocation(eventName);
+
+    if(result.length > 0){
+        return result[0].location;
+    }
+    else{
+        return null;
+    }
 };
 
 
@@ -84,7 +99,7 @@ exports.requestAllGames = (eventName) => {
 
 exports.requestEventName = ()=>{
     //TODO: this is not fully developed to work proper
-    return eventName;
+    return constEventName;
 };
 
 

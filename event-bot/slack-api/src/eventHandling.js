@@ -42,7 +42,8 @@ exports.handleActions = async (slackEvent, botToken) => {
 }
 
 
-const handleRegistreables = async (registereableMessageEvents, slackEvent, botToken) => {
+const handleRegistreables = async (registereableMessageEvents, slackEvent, botToken, context) => {
+
   const sayFunc = (message) => {
     const params = {
       token: botToken,
@@ -68,6 +69,19 @@ const handleRegistreables = async (registereableMessageEvents, slackEvent, botTo
     await asyncForEach(registereableMessageEvents, async command => {
       if (slackEvent.text.match(command.query)) {
         if (command.heavy) {
+          // const response = await fetch('https://slack.com/api/chat.postMessage', {
+          //   method: 'POST',
+          //   headers: {
+          //     'Content-Type': 'application/json',
+          //     'Authorization': 'Bearer ' + botToken,
+          //     'X-Slack-No-Retry': 1
+          //   },
+          //   statusCode: 200,
+          //   body: {}
+          // });
+          // console.log('heavy task');
+          // console.log(response);
+
           await sayEphemeral(`Processing request "${slackEvent.text}".`);
         }
         await command.lambda({ message: slackEvent, say: sayFunc, botToken, events: registereableMessageEvents });
@@ -83,8 +97,8 @@ const handleRegistreables = async (registereableMessageEvents, slackEvent, botTo
 };
 
 
-exports.handleEvents = async (slackEvent, botToken) => {
+exports.handleEvents = async (slackEvent, botToken, context) => {
   const registereableMessageEvents = getEventRegistrations();
 
-  await handleRegistreables(registereableMessageEvents, slackEvent, botToken);
+  await handleRegistreables(registereableMessageEvents, slackEvent, botToken, context);
 };

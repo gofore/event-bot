@@ -141,11 +141,6 @@ exports.showSingleGamesScores = async (say, gameRequested, topsRequested) => {
 };
 
 exports.showAllGameScores = async (say) => {
-  // const games = requestAllGames(requestEventName());
-
-  // games.forEach(element => {
-  //   exports.showSingleGamesScores(say, element.name, topsRequested);
-  // });
   const scorePackage = await requestAllTopScores(requestEventName());
   const scores = stringifyScores(scorePackage);
   await say(`Scores are:\n${scores}`);

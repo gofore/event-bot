@@ -8,7 +8,7 @@ const secret = process.env.SLACK_SIGNING_SECRET || '1111111111111111111111111';
 const botToken = process.env.SLACK_BOT_TOKEN || 'xoxb-werwer-werwer-werw-erwer-werwre';
 const verificationToken = process.env.VERIFICATION_TOKEN;
 
-module.exports.lambdaHandler = async (data) => {
+module.exports.lambdaHandler = async (data, context) => {
   if(process.env.DEBUG_LOGS){
     console.log(data);
   }
@@ -38,14 +38,14 @@ module.exports.lambdaHandler = async (data) => {
           response.body = verifyCall(dataObject);
           break;
         case 'event_callback':
-          await handleEvent(dataObject.event);
+          await handleEvent(dataObject.event, context);
           response.body = { ok: true };
           break;
         case 'block_actions':
           await handleActions(dataObject, botToken);
           response.body = { ok: true };
         case 'message':
-          await handleMessage(dataObject.event);
+          await handleMessage(dataObject.event, context);
           response.body = { ok: true };
         default:
           response.statusCode = 400,
@@ -73,14 +73,14 @@ function verifyCall(data) {
   }
 }
 
-async function handleMessage(slackEvent) {
+async function handleMessage(slackEvent, context) {
   if (slackEvent.channel_type && slackEvent.channel_type === "im" && !slackEvent.bot_id) {
-    await handleEvents(slackEvent, botToken);
+    await handleEvents(slackEvent, botToken, context);
   }
 }
 
-async function handleEvent(slackEvent) {
+async function handleEvent(slackEvent, context) {
   if (!slackEvent.bot_id) {
-    await handleEvents(slackEvent, botToken);
+    await handleEvents(slackEvent, botToken, context);
   }
 }

@@ -1,4 +1,4 @@
-const {DatabaseConnection} = require('./mysqlDatabaseConnection.js');
+const {DatabaseConnection} = require('../event-bot/slack-api/src/mysqlDatabaseConnection');
 
 const eventName = 'hw';
 
@@ -86,8 +86,9 @@ db.requestAllCategories(eventName).then(result => {
     // console.log(result);
 });
 
-
-
+db.findSoonestEvent('hw').then((result) => {
+    console.log(result);
+});
 db.saveScore('hw', 'speden spelit', 'Huuhkajat', randomInt(1, 1500)).then((result) => {
     console.log(result);
 });

@@ -53,6 +53,13 @@ const helpMentioned = async (say, events) => {
 
 
 const checkDBConnectionSuccess = (resultPackage) => {
+  if(!resultPackage.message){
+    return false;
+  }
+  if(resultPackage.affectedRows){
+    return true;
+  }
+
   //TODO: actually checking something meaningful from this!
   return true;
 }
@@ -64,6 +71,7 @@ exports.getEventRegistrations = () => {
 
   const registereableMessageEvents = [
     {
+      heavy: true,
       query: /eta|ETA/,
       lambda: async ({ say }) => {
         const timeUntil = await timeUntilEvent(requestEventName()) - Date.now();
@@ -102,6 +110,7 @@ exports.getEventRegistrations = () => {
         const params = splitMentionMessage(message);
         const teamName = params[1];
         const resultPackage = await registerTeam(teamName);
+        console.log(resultPackage);
         if (checkDBConnectionSuccess(resultPackage)) {
           await say("Team registered succesfully with name " + teamName);
         } else {
@@ -114,7 +123,12 @@ exports.getEventRegistrations = () => {
       query: /loc[ation]{0,5}$/,
       lambda: async ({ say }) => {
         const locationLink = await locationOfEvent(requestEventName());
-        await say(`${locationLink}`);
+        if(locationLink){
+          await say(`${locationLink}`);
+        } else {
+          await say('No location found with given event');
+        }
+        
       },
       help: "[location] shows where the event is located."
     },
@@ -122,7 +136,7 @@ exports.getEventRegistrations = () => {
       heavy: true,
       query: /tops?$/,
       lambda: async ({ message, say }) => {
-        showAllGameScores(say, 5);
+        await showAllGameScores(say, 5);
       },
       help: "[top] or [tops] lists the top 5 teams of every game."
     },
@@ -154,7 +168,6 @@ exports.getEventRegistrations = () => {
         const imageNumber = parseInteger(params[2]);
         const { user } = message;
         const resultPackage = await voteImage(requestEventName(), categoryName, user, imageNumber);
-
         if (checkDBConnectionSuccess(resultPackage)) {
           await say("You voted image succesfully");
         }

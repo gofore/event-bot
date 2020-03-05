@@ -113,14 +113,14 @@ exports.scoreModal = ({ ack, view, botToken }) => {
 };
 
 const stringifyScores = scorePackage => {
-  let scores = "";
+  let scores = '';
 
   scorePackage.forEach(element => {
     let game = '';
     if (element.game_name) {
       game = ' in ' + element.game_name;
     }
-    scores += "    " + element.team_name + " with score " + element.score + game + "\n";
+    scores += '    ' + element.team_name + ' with score ' + element.score + game + '\n';
   });
   return scores;
 }

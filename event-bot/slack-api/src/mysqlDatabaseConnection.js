@@ -3,39 +3,51 @@ const { promisify } = require('util');
 
 const isLogging = false;
 
+const createAWSRDSSettings = timeoutTime => {
+    return {
+        host: 'event-db.cyocfpjf05my.eu-west-1.rds.amazonaws.com',
+        // ssl: 'fetchThisStill',
+        user: 'admin',
+        password: process.env.DB_PASSWORD,
+        connectTimeout: timeoutTime,
+        database: 'eventdb'
+    };
+};
+
+const localSettings = {
+    host: 'localhost',
+    user: 'dev',
+    password: '',
+    database: 'event_db_singular'
+};
+
 exports.DatabaseConnection = class DatabaseConnection {
 
-    constructor() {
-        this.connection = mysql.createConnection({
-            host: 'event-db.cyocfpjf05my.eu-west-1.rds.amazonaws.com',
-            // ssl: 'fetchThisStill',
-            user: 'admin',
-            password: process.env.DB_PASSWORD,
-            connectTimeout: 100000,
-            database: 'eventdb'
-        });
+    constructor(timeout) {
+        const timeoutTime = timeout || 100000;
+        this.connection = mysql.createConnection(createAWSRDSSettings(timeout));
 
         this.connection.connect[promisify.custom] = err => new Promise((resolve, reject) => {
-            if(err){
+            if (err) {
                 throw err;
             }
-            else{
+            else {
                 resolve();
             }
         });
 
         this.connection.end[promisify.custom] = err => new Promise((resolve, reject) => {
-            if(err){
+            if (err) {
                 throw err;
             }
-            else{
+            else {
                 resolve();
             }
         })
 
         this.connection.query[promisify.custom] = (query, queryParams) => new Promise((resolve, reject) => {
             if (process.env.DEBUG_LOGS) {
-                console.log(`Starting query ${query}`);
+                console.log(`Starting query ${query} with parameters ${queryParams}`);
             }
             this.connection.query(query, queryParams, (err, results, fields) => {
                 if (err) {
@@ -151,7 +163,8 @@ exports.DatabaseConnection = class DatabaseConnection {
             FROM category c
                 INNER JOIN event e
                 USING (event_id)
-            WHERE event_name = ? AND c.category_name = ?`, [slackId, imageNumber, eventName, categoryName]);
+            WHERE event_name = ? AND c.category_name = ?
+            ON DUPLICATE KEY UPDATE vote = ?`, [slackId, imageNumber, eventName, categoryName, imageNumber]);
     }
 
 
@@ -176,13 +189,17 @@ exports.DatabaseConnection = class DatabaseConnection {
 
     requestAllVotes = (eventName) => {
         return this.doQuery(`
-            SELECT v.vote, count(*) as NUM
-            FROM vote v            
+            SELECT v.vote, c.category_name, count(*) as NUM
+            FROM vote v
+            INNER JOIN category c
+                USING(category_id)
             INNER JOIN event e
                 USING(event_id)
             WHERE e.event_name = ?
             GROUP BY vote
-            ORDER BY NUM DESC
+            ORDER BY
+                c.category_name DESC,
+                NUM DESC
         `, [eventName]);
     }
 

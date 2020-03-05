@@ -2,7 +2,11 @@ const {DatabaseConnection} = require('./mysqlDatabaseConnection');
 
 const constEventName = "hw";
 
-const connection = new DatabaseConnection();
+let connection;
+
+exports.initializeConnection = async(timeleft) => {
+    connection = new DatabaseConnection(timeleft);
+}
 
 exports.timeUntilEventEnd = async (eventName, optionalLocation) => {
     return connection.queryTimeUntilEventEnd(eventName, optionalLocation)[0].end_time;
@@ -105,4 +109,8 @@ exports.requestEventName = ()=>{
 
 exports.requestAllTeams = (eventName) => {
     return connection.requestAllTeams(eventName);
+}
+
+exports.requestAllVotes = (eventName) => {
+    return connection.requestAllVotes(eventName);
 }

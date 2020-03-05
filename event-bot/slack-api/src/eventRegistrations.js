@@ -5,8 +5,10 @@ const {
   requestEventName,
   registerTeam,
   locationOfEvent,
-  requestSoonestEvent,
-  voteImage
+  voteImage,
+  requestAllTeams,
+  requestAllGames,
+  requestAllVotes
 } = require("./databaseInterface");
 const {
   showAllGameScores,
@@ -14,12 +16,14 @@ const {
 } = require("./scoreHandlingFunctions");
 const { createAskForTeam, createAskForVote } = require("./modalDefinitions");
 
-const eventName = requestSoonestEvent(Date.now());
-
 const splitMentionMessage = message => {
   let split = message.text.match(/("[^"]+"|[^"\s]+)/g);
   if (split[0].includes("@")) {
     split = split.slice(1);
+  }
+  for (let index = 0; index < split.length; index++) {
+    split[index] = split[index].replace(/"/g, '');
+    split[index] = split[index].replace(/'/g, '');
   }
   return split;
 };
@@ -53,15 +57,24 @@ const helpMentioned = async (say, events) => {
 
 
 const checkDBConnectionSuccess = (resultPackage) => {
-  if(!resultPackage.message){
+  console.log(resultPackage);
+  if (!resultPackage.message) {
     return false;
   }
-  if(resultPackage.affectedRows){
+  if (resultPackage.affectedRows) {
     return true;
   }
 
-  //TODO: actually checking something meaningful from this!
-  return true;
+  return false;
+}
+
+
+const dblistIntoString = (array, intro, fieldName) => {
+  let answer = intro;
+  array.forEach(element => {
+    answer += `\n    ${element[fieldName]}`;
+  });
+  return answer;
 }
 
 
@@ -71,7 +84,7 @@ exports.getEventRegistrations = () => {
 
   const registereableMessageEvents = [
     {
-      heavy: true,
+      heavy: false,
       query: /eta|ETA/,
       lambda: async ({ say }) => {
         const timeUntil = await timeUntilEvent(requestEventName()) - Date.now();
@@ -88,7 +101,7 @@ exports.getEventRegistrations = () => {
         const teamName = params[2];
         const score = parseInteger(params[3]);
         if (isNaN(score)) {
-          await say(
+          await sayEphemeral(
             "The third parameter needs to be a number representing the score"
           );
           return;
@@ -109,7 +122,7 @@ exports.getEventRegistrations = () => {
       lambda: async ({ message, say, sayEphemeral }) => {
         const params = splitMentionMessage(message);
         const teamName = params[1];
-        const resultPackage = await registerTeam(teamName);
+        const resultPackage = await registerTeam(requestEventName(), teamName);
         console.log(resultPackage);
         if (checkDBConnectionSuccess(resultPackage)) {
           await say("Team registered succesfully with name " + teamName);
@@ -123,12 +136,12 @@ exports.getEventRegistrations = () => {
       query: /loc[ation]{0,5}$/,
       lambda: async ({ say }) => {
         const locationLink = await locationOfEvent(requestEventName());
-        if(locationLink){
+        if (locationLink) {
           await say(`${locationLink}`);
         } else {
           await say('No location found with given event');
         }
-        
+
       },
       help: "[location] shows where the event is located."
     },
@@ -142,20 +155,23 @@ exports.getEventRegistrations = () => {
     },
     {
       heavy: true,
-      query: /tops? [\d].*/,
+      query: /tops? .*/,
       lambda: async ({ message, say }) => {
         const params = splitMentionMessage(message);
-        const topsRequested = parseInteger(params[1]);
-        const gameRequestedSpliceParameters = params.splice(2);
-        if (gameRequestedSpliceParameters.length > 0) {
-          await showSingleGamesScores(
-            say,
-            gameRequestedSpliceParameters.join(" "),
-            topsRequested
-          );
-        } else {
-          await showAllGameScores(say, topsRequested);
+        let topsRequested;
+        let gameRequested;
+        if (params.length > 2) {
+          topsRequested = parseInteger(params[1]);
+          gameRequested = params[2];
         }
+        else {
+          gameRequested = params[1];
+        }
+        await showSingleGamesScores(
+          say,
+          gameRequested,
+          topsRequested
+        );
       },
       help: `[top _number_] or [tops _number_ _gameName_]. Shows top scores for all the matching games.`
     },
@@ -171,7 +187,7 @@ exports.getEventRegistrations = () => {
         if (checkDBConnectionSuccess(resultPackage)) {
           await say(`Image ${imageNumber} voted succesfully`);
         }
-        else{
+        else {
           await sayEphemeral("Vote couldn't be processed succesfully");
         }
       },
@@ -188,7 +204,7 @@ exports.getEventRegistrations = () => {
           location = params[1];
         }
         const timeUntil =
-         await timeUntilEventEnd(requestEventName(), location) - Date.now();
+          await timeUntilEventEnd(requestEventName(), location) - Date.now();
         await sayTimeUntil(say, timeUntil);
       },
       help:
@@ -217,6 +233,50 @@ exports.getEventRegistrations = () => {
         await askForVote(botToken, message);
       },
       help: "[vote] starts dialog with user to define category and number to vote on."
+    },
+    {
+      heavy: true,
+      query: /teams$/,
+      lambda: async ({ say }) => {
+        const teams = await requestAllTeams(requestEventName());
+        if (teams.length > 0) {
+          await say(dblistIntoString(teams, 'Teams registered:', 'team_name'));
+        } else {
+          await say('No teams registered yet in the event');
+        }
+      },
+      help: "[teams] allows you to check all the registered teams."
+    },
+    {
+      heavy: true,
+      query: /games$/,
+      lambda: async ({ say }) => {
+        //Slightly annoying copy paste
+        const games = await requestAllGames(requestEventName());
+        if (games.length > 0) {
+          await say(dblistIntoString(games, 'Games part of program:', 'game_name'));
+        } else {
+          await say('No games in that event');
+        }
+      },
+      help: "[games] lists all the scheduled games of the event."
+    },
+    {
+      heavy: true,
+      query: /votes$/,
+      lambda: async ({ say }) => {
+        const votes = await requestAllVotes(requestEventName());
+        if (votes.length > 0) {
+          let answer = 'Votes in all categories:';
+          votes.forEach(vote => {
+            console.log(vote);
+            answer += `\n    In ${vote.category_name} ${vote.vote} has been voted ${vote.NUM} times`;
+          });
+          await say(answer);
+        } else {
+          await say('No votes received yet!');
+        }
+      }
     }
   ];
   return registereableMessageEvents;

@@ -3,16 +3,17 @@
 const AWS = require('aws-sdk');
 const { handleEvents, handleActions } = require('./eventHandling');
 const querystring = require('querystring');
+const crypto = require('crypto');
 
 const secret = process.env.SLACK_SIGNING_SECRET || '1111111111111111111111111';
 const botToken = process.env.SLACK_BOT_TOKEN || 'xoxb-werwer-werwer-werw-erwer-werwre';
 const verificationToken = process.env.VERIFICATION_TOKEN;
 
 module.exports.lambdaHandler = async (data, context) => {
-  if(process.env.DEBUG_LOGS){
+  if (process.env.DEBUG_LOGS) {
     console.log(data);
   }
-  
+
   let dataObject;
   if (data.body.includes('payload=')) {
     dataObject = JSON.parse(querystring.parse(data.body).payload);
@@ -21,14 +22,25 @@ module.exports.lambdaHandler = async (data, context) => {
     dataObject = JSON.parse(data.body);
   }
 
-  
-
   let response = {
     statusCode: 200,
     body: {},
     // Tell slack we don't want retries, to avoid multiple triggers of this lambda
     headers: { 'X-Slack-No-Retry': 1 }
   };
+
+
+  //Extra paranoia points
+  try {
+    if (!verifySignature(data)) {
+      response.statusCode = 401;
+      return response;
+    }
+  } catch (error) {
+    response.statusCode = 401;
+    return response;
+  }
+  
 
   console.log(dataObject);
   try {
@@ -64,6 +76,26 @@ module.exports.lambdaHandler = async (data, context) => {
 }
 
 
+function verifySignature(data) {
+  const slackTimestamp = data.headers['X-Slack-Request-Timestamp'];
+  const slackSignature = data.headers['X-Slack-Signature'];
+
+  const timestamp = Math.floor(Date.now() / 1000);
+  const hmac = crypto.createHmac('sha256', secret);
+  hmac.update('v0:' + slackTimestamp + ':' + data.body);
+  const signature = 'v0=' + hmac.digest('hex');
+
+  if (!slackTimestamp
+    || !slackSignature
+    || Math.abs(timestamp - slackTimestamp) > 60 * 5
+    || signature !== slackSignature) {
+    return false;
+  }
+
+  return true;
+}
+
+
 function verifyCall(data) {
   if (data.token === verificationToken) {
     return data.challenge;
@@ -84,3 +116,5 @@ async function handleEvent(slackEvent, context) {
     await handleEvents(slackEvent, botToken, context);
   }
 }
+
+

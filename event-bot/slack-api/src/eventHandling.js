@@ -11,6 +11,9 @@ const {
 const {
   categoryActionId
 } = require("./modalDefinitions");
+const {
+initializeConnection
+} = require("./databaseInterface");
 
 
 const asyncForEach = async (array, callback) => {
@@ -43,6 +46,7 @@ exports.handleActions = async (slackEvent, botToken) => {
 
 
 const handleRegistreables = async (registereableMessageEvents, slackEvent, botToken, context) => {
+  initializeConnection(context.getRemainingTimeInMillis());
 
   const sayFunc = (message) => {
     const params = {

@@ -4,7 +4,7 @@ const constEventName = "hw";
 
 let connection;
 
-exports.initializeConnection = async(timeleft) => {
+exports.initializeConnection = (timeleft) => {
     connection = new DatabaseConnection(timeleft);
 }
 
@@ -101,7 +101,7 @@ exports.requestAllGames = (eventName) => {
 };
 
 
-exports.requestEventName = ()=>{
+exports.requestEventName = () =>{
     //TODO: this is not fully developed to work proper
     return constEventName;
 };

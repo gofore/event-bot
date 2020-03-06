@@ -1,6 +1,7 @@
 const {
   giveGameAndScoreModal,
-  scoreUpdatedMsg
+  scoreUpdatedMsg,
+  finishModal
 } = require("./blockTools");
 const {
   teamActionId
@@ -9,28 +10,44 @@ const {
   requestAllTopScores,
   requestAllGames,
   saveScore,
+  saveScoreById,
   requestEventName,
   requestTopScore
 } = require("./databaseInterface");
 const fetch = require('node-fetch');
 const Slack = require('slack');
+const {postSlack, postOk} = require('./helpers');
 
 const scorePattern = /[0-9]+$/;
 
 
-exports.handleScoringSaga = (slackEvent, botToken, action) => {
+exports.handleScoringSaga = async (slackEvent, botToken, action) => {
   try {
     const { channel } = slackEvent;
 
     // Extract selected team.
     const { trigger_id } = slackEvent;
+    const { userId } = slackEvent.user;
     const { selected_option } = action;
     const selectedTeam = {
       id: selected_option.value,
       name: selected_option.text.text
     };
 
-    const games = requestAllGames(requestEventName()).map(c => ({
+    const gamesFromDB = await requestAllGames(requestEventName());
+    if(gamesFromDB.length === 0){
+      const errMessage = {
+        token: botToken,
+        channel: channel.id,
+        text: 'No games found in the event. Contact event organizer about this!',
+        user: userId,
+        attachments: []
+      }
+  
+      return Slack.chat.postEphemeral(errMessage);
+    }
+
+    const games = gamesFromDB.map(c => ({
       id: c.game_id,
       name: c.game_name
     }));
@@ -45,25 +62,20 @@ exports.handleScoringSaga = (slackEvent, botToken, action) => {
     const params = {
       token: botToken,
       trigger_id,
-      view: modal
+      view: JSON.stringify(modal)
     };
 
-    return fetch('https://slack.com/api/views.open', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + botToken
-      },
-      body: JSON.stringify(params)
-    });
+    return postSlack('views.open', botToken, params);
+
   } catch (error) {
     console.error(error);
   }
 }
 
 
-exports.scoreModal = ({ ack, view, botToken }) => {
+exports.scoreModalSubmitted = async (slackEvent, botToken) => {
   try {
+    const { view } = slackEvent;
     const {
       state: {
         values: {
@@ -74,6 +86,7 @@ exports.scoreModal = ({ ack, view, botToken }) => {
       private_metadata
     } = view;
 
+    const { trigger_id } = slackEvent;
     const { team, channel_id } = JSON.parse(private_metadata);
     const game = {
       id: game_select.selected_option.value,
@@ -83,30 +96,31 @@ exports.scoreModal = ({ ack, view, botToken }) => {
 
     // Acknowledge the view_submission event with or without errors.
     if (!scorePattern.test(score)) {
-      ack({
-        errors: [
-          {
-            name: "score_input",
-            error: "Sorry, this isn’t a valid score"
-          }
-        ]
-      });
-      return;
+      view.blocks = {
+        ...
+        {
+          type: 'section',
+          text: 'Sorry, this isn’t a valid score'
+        }
+      };
+      const params = {
+        token: botToken,
+        trigger_id,
+        view: JSON.stringify(view)
+      };
+
+      return postSlack('views.update', botToken, params);
     }
-
-    ack();
-
+    
+    const teamId = parseInt(team.id);
+    const gameId = parseInt(game.id);
     const scoreNumber = parseInt(score);
 
     // UPDATE_DATABASE_HERE
-    saveScore(requestEventName(), team.name, game.name, scoreNumber);
+    await saveScoreById(requestEventName(), gameId, teamId, scoreNumber);
 
     // Update the message
-    const scoreUpdatedBlocks = scoreUpdatedMsg(
-      team.name,
-      game.name,
-      scoreNumber
-    ).blocks;
+    await finishModal(scoreUpdatedMsg.bind(this, team.name, game.name, scoreNumber), view, botToken);
   } catch (error) {
     console.error(error);
   }
@@ -145,3 +159,5 @@ exports.showAllGameScores = async (say) => {
   const scores = stringifyScores(scorePackage);
   await say(`Scores are:\n${scores}`);
 };
+
+

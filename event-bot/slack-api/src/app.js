@@ -1,7 +1,6 @@
 'use strict';
 
-const AWS = require('aws-sdk');
-const { handleEvents, handleActions } = require('./eventHandling');
+const { handleEvents, handleIncomingActions, handleViews } = require('./eventHandling');
 const querystring = require('querystring');
 const crypto = require('crypto');
 
@@ -40,11 +39,18 @@ module.exports.lambdaHandler = async (data, context) => {
     response.statusCode = 401;
     return response;
   }
-  
+
 
   console.log(dataObject);
   try {
     if (!('X-Slack-Retry-Num' in data.headers)) {
+      console.log(dataObject.type);
+      const {
+        initializeConnection
+      } = require("./databaseInterface");
+
+      initializeConnection(context.getRemainingTimeInMillis());
+
       switch (dataObject.type) {
         case 'url_verification':
           response.body = verifyCall(dataObject);
@@ -54,14 +60,22 @@ module.exports.lambdaHandler = async (data, context) => {
           response.body = { ok: true };
           break;
         case 'block_actions':
-          await handleActions(dataObject, botToken);
+          await handleIncomingActions(dataObject, botToken, context);
           response.body = { ok: true };
+          break;
+        case 'view_submission':
+          const responseResult = await handleViews(dataObject, botToken);
+          response.body = { ok: true };
+          console.log(responseResult);
+          console.log('view handled');
+          break;
         case 'message':
           await handleMessage(dataObject.event, context);
           response.body = { ok: true };
+          break;
         default:
-          response.statusCode = 400,
-            response.body = 'Empty request';
+          response.statusCode = 400;
+          response.body = 'Empty request';
           break;
       }
     }

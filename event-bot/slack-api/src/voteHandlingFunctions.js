@@ -1,97 +1,86 @@
 const {
   giveCategoryModal,
-  votedSuccesfullyMessage
+  votedSuccesfullyMessage,
+  finishModal
 } = require("./blockTools");
 const {
-    categoryActionId
-  } = require("./modalDefinitions");
+  categoryActionId
+} = require("./modalDefinitions");
 const {
-  voteByCategoryId} = require("./databaseInterface");
+  voteByCategoryId } = require("./databaseInterface");
+const { postSlack, postOk } = require('./helpers');
 
 const Slack = require('slack');
 const scorePattern = /[0-9]+$/;
 
 
 
-exports.handleVotingSaga = (slackEvent, botToken, action)  => {
-    // ack();
+exports.handleVotingSaga = async (slackEvent, botToken, action) => {
+  try {
+    const { channel } = slackEvent;
 
-    try {
-      const { botToken } = context;
-      const { channel, message } = slackEvent;
+    console.log(channel);
+    const { trigger_id } = slackEvent;
+    const { selected_option } = action;
+    const selectedCategory = {
+      id: selected_option.value,
+      name: selected_option.text.text
+    };
 
-      const { actions, trigger_id } = slackEvent;
-      const { selected_option } = action;
-      const selectedCategory = {
-        id: selected_option.value,
-        name: selected_option.text.text
-      };
-
-      const modal = {
-        ...giveCategoryModal(selectedCategory),
-        private_metadata: {
-          category: selectedCategory,
-          channel_id: channel.id,
-          message_ts: message.ts
-        }
-      };
-
-      const params = {
-        token: botToken,
-        trigger_id,
-        view: JSON.stringify(modal)
+    const modal = {
+      ...giveCategoryModal(selectedCategory),
+      private_metadata: {
+        category: selectedCategory,
+        channel_id: channel.id
       }
-      console.log(params);
-      return Slack.views.open(params)
+    };
 
-    } catch (error) {
-      console.error(error);
+    const params = {
+      token: botToken,
+      trigger_id,
+      view: JSON.stringify(modal)
+    };
+
+    console.log(params);
+    const result = await postSlack('views.open', botToken, params);
+    if(process.env.DEBUG_LOGS){
+      console.log(result);
     }
+
+  } catch (error) {
+    console.error(error);
+  }
 }
 
-exports.handleModalInput = ({ ack, view, context }) => {
-    try {
-      const { botToken, user } = context;
-      const {
-        state: {
-          values: {
-            vote_block: { vote_input }
-          }
-        },
-        private_metadata
-      } = view;
+exports.voteModalSubmitted = async (slackEvent, botToken) => {
+  try {
+    const { view } = slackEvent;
+    const { user } = slackEvent;
+    const {
+      state: {
+        values: {
+          vote_block: { vote_input }
+        }
+      },
+      private_metadata
+    } = view;
 
-      const { category, channel_id, message_ts } = JSON.parse(private_metadata);
-      const vote = vote_input.value;
+    const { category, channel_id } = JSON.parse(private_metadata);
+    const vote = vote_input.value;
 
-      // Acknowledge the view_submission event with or without errors.
-      if (!scorePattern.test(vote)) {
-        ack({
-          errors: [
-            {
-              name: "vote_input",
-              error: "Sorry, this isn’t a valid score"
-            }
-          ]
-        });
-        return;
-      }
-
-      ack();
-
-      // TODO update database.
-      const categoryId = parseInt(category.id);
-      const voteNumber = parseInt(vote);
-
-      // UPDATE_DATABASE_HERE
-       voteByCategoryId(categoryId, user, voteNumber);
-      
-      // Update the message
-      const scoreUpdatedBlocks = votedSuccesfullyMessage(
-        voteNumber,
-        category.name
-      ).blocks;
-    } catch (error) {
-      console.error(error);
+    // Acknowledge the view_submission event with or without errors.
+    if (!scorePattern.test(vote)) {
+      //TODO error msg
+      return;
     }
+    const categoryId = parseInt(category.id);
+    const voteNumber = parseInt(vote);
+    const { userId } = user;
+    // UPDATE_DATABASE_HERE
+    await voteByCategoryId(categoryId, userId, voteNumber);
+
+    await finishModal(votedSuccesfullyMessage.bind(this, voteNumber, category.name), view, botToken);
+  } catch (error) {
+    console.error(error);
+  }
 };

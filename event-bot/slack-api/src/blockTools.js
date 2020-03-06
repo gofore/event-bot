@@ -1,19 +1,32 @@
 const Slack = require('slack');
+const {postSlack, postOk} = require('./helpers');
 
-exports.createAsker = (requestFunction, requestData, mapLambda, blockBuilder) => (botToken, message) => {
-    const items =  requestFunction(requestData).map(mapLambda);
-    const blocks = blockBuilder(items).blocks;
-    const params = {
-      token  : botToken,
+exports.createAsker = (requestFunction, requestData, mapLambda, blockBuilder) => async (botToken, message) => {
+  const objects = await requestFunction(requestData());
+  if (objects.length === 0) {
+    const errMessage = {
+      token: botToken,
       channel: message.channel,
-      blocks: blocks,
-      text: 'blocks should be here',
+      text: 'No teams registered yet! Register team first.',
       user: message.user,
       attachments: []
-    };
+    }
 
-    return Slack.chat.postEphemeral(params);
-}; 
+    return Slack.chat.postEphemeral(errMessage);
+  }
+  const items = objects.map(mapLambda);
+  const blocks = blockBuilder(items).blocks;
+  const params = {
+    token: botToken,
+    channel: message.channel,
+    blocks: blocks,
+    text: 'blocks should be here',
+    user: message.user,
+    attachments: []
+  };
+
+  return Slack.chat.postEphemeral(params);
+};
 
 
 exports.createSelection = (selections, helpText, actionId, selectionPlaceHolder) => {
@@ -121,6 +134,26 @@ exports.giveCategoryModal = (category) => {
     ]
   };
 }
+
+
+exports.finishModal = async function (parameterBoundBlockGenerator, view, botToken) {
+  const scoreUpdatedBlocks = parameterBoundBlockGenerator.blocks;
+  view.blocks = {
+    scoreUpdatedBlocks
+  };
+  const successParams = {
+    token: botToken,
+    view: JSON.stringify(view),
+    view_id: view.id
+  };
+  console.log('acking');
+  const slackResponse = await postSlack('views.update', botToken, successParams);
+  if (process.env.DEBUG_LOGS) {
+    console.log(slackResponse);
+  }
+}
+
+
 
 exports.votedSuccesfullyMessage = (voteNumber, category) => ({
   blocks: [

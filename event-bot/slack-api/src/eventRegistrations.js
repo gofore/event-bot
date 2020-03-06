@@ -51,7 +51,7 @@ const helpMentioned = async (say, events) => {
   });
 
   helpText +=
-    "Currently I am configured to answer to @my-name commands only.\n";
+    "Currently I am configured to answer to @my-name commands only.\nYou can use quotes to give parameters with space!";
   await say(helpText);
 }
 

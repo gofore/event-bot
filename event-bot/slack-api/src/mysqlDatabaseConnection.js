@@ -58,7 +58,7 @@ exports.DatabaseConnection = class DatabaseConnection {
                 }
                 else {
                     if (process.env.DEBUG_LOGS) {
-                        console.log('Query succeeded');
+                        console.log(`Query succeeded, results: ${results}`);
                     }
                     resolve(results);
                 }
@@ -129,14 +129,8 @@ exports.DatabaseConnection = class DatabaseConnection {
     saveScoreById = (eventName, gameId, teamId, score) => {
         return this.doQuery(`
             INSERT INTO team_game (team_id, game_id, score)
-            SELECT ?, ?, ?
-            FROM event e
-                INNER JOIN team t
-                    USING (event_id)      
-                INNER JOIN game g
-                    USING (event_id)
-            WHERE e.event_name = ?
-                ON DUPLICATE KEY UPDATE score = VALUES(score)`, [teamId, gameId, score, eventName, score]);
+            VALUES (?, ?, ?)
+                ON DUPLICATE KEY UPDATE score = VALUES(score)`, [teamId, gameId, score]);
 
     }
 
@@ -223,7 +217,8 @@ exports.DatabaseConnection = class DatabaseConnection {
         return this.doQuery(`
             SELECT g.game_id, g.game_name
             FROM game g
-            INNER JOIN event e USING (event_id)
+            INNER JOIN event e
+                USING (event_id)
             WHERE e.event_name = ?
             `, [eventName]);
     }

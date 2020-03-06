@@ -2,8 +2,8 @@ const fetch = require('node-fetch');
 const {
   getEventRegistrations
 } = require("./eventRegistrations");
-const { handleVotingSaga } = require("./voteHandlingFunctions");
-const { handleScoringSaga } = require("./scoreHandlingFunctions");
+const { handleVotingSaga, voteModalSubmitted } = require("./voteHandlingFunctions");
+const { handleScoringSaga, scoreModalSubmitted } = require("./scoreHandlingFunctions");
 const Slack = require('slack');
 const {
   teamActionId
@@ -11,9 +11,6 @@ const {
 const {
   categoryActionId
 } = require("./modalDefinitions");
-const {
-initializeConnection
-} = require("./databaseInterface");
 
 
 const asyncForEach = async (array, callback) => {
@@ -22,32 +19,54 @@ const asyncForEach = async (array, callback) => {
   }
 };
 
-exports.handleActions = async (slackEvent, botToken) => {
+//This shouldnt be necessary
+const handleAllActionsFromEvent = async (slackEvent, botToken) => {
   if(process.env.DEBUG_LOGS){
-    console.log(`Handling Action ${slackEvent}`);
+    console.log(`Handling Action ${slackEvent.toString()}`);
   }
   
-  const handleAction = async () => {
+  const reactToActions = async (slackEvent, botToken) => {
     await asyncForEach(slackEvent.actions, async (action) => {
       switch (action.action_id) {
         case teamActionId:
-          const result = await handleScoringSaga(slackEvent, botToken, action);
-          console.log(result);
+          await handleScoringSaga(slackEvent, botToken, action);
           break;
         case categoryActionId:
           await handleVotingSaga(slackEvent, botToken, action);
-          console.log(categoryActionId);
           break;
       }
     });
   };
-  handleAction();
+
+  try {
+    await reactToActions(slackEvent, botToken);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+exports.handleIncomingActions = async (slackEvent, botToken, context) => {
+  await handleAllActionsFromEvent(slackEvent, botToken);
+}
+
+
+exports.handleViews = async (slackEvent, botToken) => {
+  const { callback_id } = slackEvent.view;
+  switch (callback_id) {
+    case 'setScoreModal':
+      await scoreModalSubmitted(slackEvent, botToken);
+      break;
+    case 'setVoteModal':
+      await voteModalSubmitted(slackEvent, botToken);
+      break;
+    default:
+      break;
+  }
+  
 }
 
 
 const handleRegistreables = async (registereableMessageEvents, slackEvent, botToken, context) => {
-  initializeConnection(context.getRemainingTimeInMillis());
-
   const sayFunc = (message) => {
     const params = {
       token: botToken,
@@ -73,6 +92,7 @@ const handleRegistreables = async (registereableMessageEvents, slackEvent, botTo
     await asyncForEach(registereableMessageEvents, async command => {
       if (slackEvent.text.match(command.query)) {
         if (command.heavy) {
+          //TODO: acking?
           // const response = await fetch('https://slack.com/api/chat.postMessage', {
           //   method: 'POST',
           //   headers: {

@@ -93,17 +93,6 @@ const handleRegistreables = async (registereableMessageEvents, slackEvent, botTo
       if (slackEvent.text.match(command.query)) {
         if (command.heavy) {
           //TODO: acking?
-          // const response = await fetch('https://slack.com/api/chat.postMessage', {
-          //   method: 'POST',
-          //   headers: {
-          //     'Content-Type': 'application/json',
-          //     'Authorization': 'Bearer ' + botToken,
-          //     'X-Slack-No-Retry': 1
-          //   },
-          //   statusCode: 200,
-          //   body: {}
-          // });
-
           await sayEphemeral(`Processing request "${slackEvent.text}".`);
         }
         await command.lambda({ message: slackEvent, say: sayFunc, botToken, events: registereableMessageEvents, sayEphemeral });

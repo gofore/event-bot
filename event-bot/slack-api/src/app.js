@@ -11,15 +11,28 @@ module.exports.lambdaHandler = async (data, context) => {
   if (process.env.DEBUG_LOGS) {
     console.log(data);
   }
+  let response = await processConnection(data, context);
+
+  if (response) {
+    if (process.env.DEBUG_LOGS) {
+      console.log(response);
+    }
+    return response;
+  } else {
+    throw new Error('Response was crippled in procession of the message');
+  }
+
+}
 
 
+async function processConnection(data, context) {
   let response = {
-    statusCode: 200,
-    body: {},
+    statusCode: '200',
+    body: '{}',
     // Tell slack we don't want retries, to avoid multiple triggers of this lambda
-    headers: { 'X-Slack-No-Retry': 1 }
+    headers: { 'X-Slack-No-Retry': '1' },
+    isBase64Encoded: 'false'
   };
-
 
   const { httpMethod } = data;
 
@@ -32,8 +45,6 @@ module.exports.lambdaHandler = async (data, context) => {
       const parameters = data.queryStringParameters;
 
       const code = parameters.code;
-
-      console.log(code);
       const { postFormURLEncoded } = require('./helpers');
       const oauthParams = {
         client_id: process.env.CLIENT_ID,
@@ -42,11 +53,9 @@ module.exports.lambdaHandler = async (data, context) => {
       };
 
       const accessTokenResponse = await postFormURLEncoded('oauth.v2.access', oauthParams);
-      console.log(accessTokenResponse);
       const objectified = JSON.parse(accessTokenResponse);
-      console.log(objectified);
-      if(!objectified.ok){
-        response.statusCode = 500;
+      if (!objectified.ok) {
+        setResponseStatusCode(response, 500);
         return response;
       }
       const accessToken = objectified.access_token;
@@ -56,25 +65,24 @@ module.exports.lambdaHandler = async (data, context) => {
       initializeDBConnection(context);
       await registerAccessToken(teamId, accessToken);
 
-      response.body = { ok: true };
+      setResponseBodyOK(response);
       return response;
     default:
       break;
   }
-
-
 }
 
 
-async function handleSlackEvents(data, context, botToken, response) {
+
+async function handleSlackEvents(data, context, response) {
   //Extra paranoia points for try catch
   try {
     if (!verifySignature(data)) {
-      response.statusCode = 401;
+      setResponseStatusCode(response, 401);
       return response;
     }
   } catch (error) {
-    response.statusCode = 401;
+    setResponseStatusCode(response, 401);
     return response;
   }
 
@@ -100,36 +108,44 @@ async function handleSlackEvents(data, context, botToken, response) {
           break;
         case 'event_callback':
           await handleEvent(dataObject.event, botToken, context);
-          response.body = { ok: true };
+          setResponseBodyOK(response);
           break;
         case 'block_actions':
           await handleIncomingActions(dataObject, botToken, context);
-          response.body = { ok: true };
+          setResponseBodyOK(response);;
           break;
         case 'view_submission':
           await handleViews(dataObject, botToken);
-          response.body = { ok: true };
+          setResponseBodyOK(response);;
           break;
         case 'message':
           await handleMessage(dataObject.event, botToken, context);
-          response.body = { ok: true };
+          setResponseBodyOK(response);;
           break;
         default:
-          response.statusCode = 400;
+          setResponseStatusCode(response, 400);
           response.body = 'Empty request';
           break;
       }
     }
   }
   catch (err) {
-    response.statusCode = 500,
-      response.body = JSON.stringify(err)
+    setResponseStatusCode(response, 500);
+    response.body = JSON.stringify(err)
   }
   finally {
     return response;
   }
 }
 
+
+function setResponseStatusCode(response, code) {
+  response.statusCode = code.toString();
+}
+
+function setResponseBodyOK(response) {
+  response.body = JSON.stringify({ ok: true });
+}
 
 function verifySignature(data) {
   const slackTimestamp = data.headers['X-Slack-Request-Timestamp'];
@@ -157,14 +173,14 @@ function initializeDBConnection(context) {
 }
 
 
-async function getBotToken(dataObject){
+async function getBotToken(dataObject) {
   const {
     getAccessToken
   } = require("./databaseInterface");
   let teamId;
-  if(dataObject.team_id){
+  if (dataObject.team_id) {
     teamId = dataObject.team_id;
-  } else if (dataObject.team.id){
+  } else if (dataObject.team.id) {
     teamId = dataObject.team.id;
   } else {
     throw new Error('Team id was not found on dataobject with current methods!');
@@ -172,7 +188,7 @@ async function getBotToken(dataObject){
 
   const accessTokenFetchResult = await getAccessToken(teamId);
   let accessToken;
-  if(accessTokenFetchResult){
+  if (accessTokenFetchResult) {
     accessToken = accessTokenFetchResult.access_token;
   }
 

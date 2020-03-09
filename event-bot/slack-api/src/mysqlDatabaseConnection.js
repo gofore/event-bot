@@ -1,39 +1,99 @@
 const mysql = require('mysql');
-const {promisify} = require('util');
+const { promisify } = require('util');
 
 const isLogging = false;
 
-exports.DatabaseConnection = class DatabaseConnection{
+const createAWSRDSSettings = timeoutTime => {
+    return {
+        host: 'event-db.cyocfpjf05my.eu-west-1.rds.amazonaws.com',
+        // ssl: 'fetchThisStill',
+        user: 'admin',
+        password: process.env.DB_PASSWORD,
+        connectTimeout: timeoutTime,
+        database: 'eventdb'
+    };
+};
 
-    constructor(){
-        this.connection = mysql.createConnection({
-            host: 'localhost',
-            // ssl: 'fetchThisStill',
-            user: 'dev',
-            password: '',
-            database: 'event_db_singular'
+const localSettings = {
+    host: 'localhost',
+    user: 'dev',
+    password: '',
+    database: 'event_db_singular'
+};
+
+exports.DatabaseConnection = class DatabaseConnection {
+
+    constructor(timeout) {
+        const timeoutTime = timeout || 100000;
+        this.connection = mysql.createConnection(createAWSRDSSettings(timeout));
+
+        this.connection.connect[promisify.custom] = err => new Promise((resolve, reject) => {
+            if (err) {
+                throw err;
+            }
+            else {
+                resolve();
+            }
         });
 
+        this.connection.end[promisify.custom] = err => new Promise((resolve, reject) => {
+            if (err) {
+                throw err;
+            }
+            else {
+                resolve();
+            }
+        })
+
         this.connection.query[promisify.custom] = (query, queryParams) => new Promise((resolve, reject) => {
+            if (process.env.DEBUG_LOGS) {
+                console.log(`Starting query ${query} with parameters ${queryParams}`);
+            }
             this.connection.query(query, queryParams, (err, results, fields) => {
-                if(err){
-                    reject(err);
+                if (err) {
+                    if (process.env.DEBUG_LOGS) {
+                        console.error(err);
+                    }
+                    throw err;
                 }
-                else{
+                else {
+                    if (process.env.DEBUG_LOGS) {
+                        console.log(`Query succeeded, results: ${results}`);
+                    }
                     resolve(results);
                 }
             })
         });
         this.queryWithPromise = promisify(this.connection.query);
+        this.connect = promisify(this.connection.connect);
+        this.end = promisify(this.connection.end);
     }
 
+
+    destroyConnection = () => {
+        this.connection.destroy();
+    }
+
+
+    startConnection = () => {
+        return this.connect();
+    }
+
+
+    /**
+     * If you use start connection, also dispose it with endConnection, connections can be started implicitly too
+     */
+    endConnection = () => {
+        return this.end();
+    }
+
+
     doQuery = (query, queryParams) => {
-        //This does not require open and end. Hopefully it still ends with promise too..
         return this.queryWithPromise(query, queryParams);
     }
 
 
-    findSoonestEvent(){
+    findSoonestEvent() {
         return this.doQuery(`
             SELECT event_name, long_name, starting_date 
             FROM event
@@ -42,41 +102,35 @@ exports.DatabaseConnection = class DatabaseConnection{
 
 
     queryTimeUntilEventEnd = (eventName, optionalLocation) => {
-        if(Boolean(optionalLocation)){
+        if (Boolean(optionalLocation)) {
             return this.doQuery(`
-                SELECT e
+                SELECT e.location_from, e.end_time
                 FROM ending e
                 INNER JOIN event ev
                     USING (event_id)
-                WHERE ev.event_name = ? AND e.location = ?`,[eventName, optionalLocation]);
+                WHERE ev.event_name = ? AND e.location = ?`, [eventName, optionalLocation]);
         }
-        else{
+        else {
             return this.doQuery(`
-                SELECT e.e
+                SELECT e.location_from, e.end_time
                 FROM ending e
                 INNER JOIN event ev
                     USING (event_id)
-                WHERE ev.event_name = ? AND e.location = ''`,[eventName]);
+                WHERE ev.event_name = ? AND e.location = ''`, [eventName]);
         }
     };
-    
+
 
     queryDateFor = (eventName) => {
         return this.doQuery("SELECT e.starting_date FROM event e WHERE e.event_name = ?", [eventName]);
     }
-    
+
 
     saveScoreById = (eventName, gameId, teamId, score) => {
         return this.doQuery(`
             INSERT INTO team_game (team_id, game_id, score)
-            SELECT ?, ?, ?
-            FROM event e
-                INNER JOIN team t
-                    USING (event_id)      
-                INNER JOIN game g
-                    USING (event_id)
-            WHERE e.event_name = ?
-                ON DUPLICATE KEY UPDATE score = VALUES(score)`, [teamId, gameId, score, eventName, score]);
+            VALUES (?, ?, ?)
+                ON DUPLICATE KEY UPDATE score = VALUES(score)`, [teamId, gameId, score]);
 
     }
 
@@ -94,7 +148,7 @@ exports.DatabaseConnection = class DatabaseConnection{
             WHERE t.team_name = ? AND g.game_name = ? AND e.event_name = ?
                 ON DUPLICATE KEY UPDATE score = VALUES(score)`, [score, teamName, gameName, eventName]);
     }
-    
+
 
     voteFor = (eventName, categoryName, slackId, imageNumber) => {
         return this.doQuery(`
@@ -103,7 +157,8 @@ exports.DatabaseConnection = class DatabaseConnection{
             FROM category c
                 INNER JOIN event e
                 USING (event_id)
-            WHERE event_name = ? AND c.category_name = ?`, [slackId, imageNumber, eventName, categoryName]);
+            WHERE event_name = ? AND c.category_name = ?
+            ON DUPLICATE KEY UPDATE vote = ?`, [slackId, imageNumber, eventName, categoryName, imageNumber]);
     }
 
 
@@ -128,13 +183,17 @@ exports.DatabaseConnection = class DatabaseConnection{
 
     requestAllVotes = (eventName) => {
         return this.doQuery(`
-            SELECT v.vote, count(*) as NUM
-            FROM vote v            
+            SELECT v.vote, c.category_name, count(*) as NUM
+            FROM vote v
+            INNER JOIN category c
+                USING(category_id)
             INNER JOIN event e
                 USING(event_id)
             WHERE e.event_name = ?
             GROUP BY vote
-            ORDER BY NUM DESC
+            ORDER BY
+                c.category_name DESC,
+                NUM DESC
         `, [eventName]);
     }
 
@@ -150,15 +209,16 @@ exports.DatabaseConnection = class DatabaseConnection{
                     USING(event_id)
                 WHERE team_name = ? AND event_name = ?
             ) LIMIT 1`, [teamName, eventName, teamName, eventName]);
-    } 
+    }
 
-    
+
 
     requestAllGames = (eventName) => {
         return this.doQuery(`
             SELECT g.game_id, g.game_name
             FROM game g
-            INNER JOIN event e USING (event_id)
+            INNER JOIN event e
+                USING (event_id)
             WHERE e.event_name = ?
             `, [eventName]);
     }
@@ -185,7 +245,7 @@ exports.DatabaseConnection = class DatabaseConnection{
             WHERE t.team_name = ?`, [eventName, teamName]);
     }
 
-    
+
     requestTopScoreFor = (eventName, gameName) => {
         return this.doQuery(`
             SELECT t.team_id, t.team_name, tg.score
@@ -202,8 +262,8 @@ exports.DatabaseConnection = class DatabaseConnection{
         `, [gameName, eventName])
     }
 
-    
-    requestAllTopScores = function(eventName){
+
+    requestAllTopScores = function (eventName) {
         return this.doQuery(`
             SELECT t.team_name, g.game_name, tg.score
             FROM team_game tg
@@ -220,7 +280,7 @@ exports.DatabaseConnection = class DatabaseConnection{
     };
 
 
-    requestCorrectAnswerSetFor = (eventName, gameName,) => {
+    requestCorrectAnswerSetFor = (eventName, gameName, ) => {
         return this.doQuery(`
             SELECT json_answerset
             FROM correct_answer ca

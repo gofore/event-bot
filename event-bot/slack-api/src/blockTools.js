@@ -1,22 +1,35 @@
-exports.createAsker = (app, requestFunction, requestData, mapLambda, blockBuilder, text) => async (botToken, channel) => {
-  try {
-    const items = await requestFunction(requestData).map(mapLambda);
-    const blocks = blockBuilder(items).blocks;
+const Slack = require('slack');
+const {postSlack, postOk} = require('./helpers');
 
-    const result = await app.client.chat.postMessage({
+exports.createAsker = (requestFunction, requestData, mapLambda, blockBuilder) => async (botToken, message) => {
+  const objects = await requestFunction(requestData());
+  if (objects.length === 0) {
+    const errMessage = {
       token: botToken,
-      channel: channel,
-      blocks: blocks,
-      // Text in the notification
-      text: text
-    });
-  } catch (error) {
-    console.error(error);
+      channel: message.channel,
+      text: 'No teams registered yet! Register team first.',
+      user: message.user,
+      attachments: []
+    }
+
+    return Slack.chat.postEphemeral(errMessage);
   }
-}; 
+  const items = objects.map(mapLambda);
+  const blocks = blockBuilder(items).blocks;
+  const params = {
+    token: botToken,
+    channel: message.channel,
+    blocks: blocks,
+    text: 'blocks should be here',
+    user: message.user,
+    attachments: []
+  };
+
+  return Slack.chat.postEphemeral(params);
+};
 
 
-exports.createSelection = (selections, helpText, actionId, selectionPlaceHolder) =>{
+exports.createSelection = (selections, helpText, actionId, selectionPlaceHolder) => {
   return {
     blocks: [
       {
@@ -81,6 +94,7 @@ exports.giveGameMsg = games => {
 
 
 exports.giveCategoryModal = (category) => {
+  console.log(category);
   return {
     type: "modal",
     callback_id: "setVoteModal",
@@ -121,6 +135,35 @@ exports.giveCategoryModal = (category) => {
     ]
   };
 }
+
+
+exports.finishModal = async function (parameterBoundBlockGenerator, view, botToken) {
+  const scoreUpdatedBlocks = parameterBoundBlockGenerator().blocks;
+  const newView = {
+    type: 'modal',
+    title: view.title,
+    blocks: scoreUpdatedBlocks,
+    clear_on_close: true,
+    close: {
+      type: 'plain_text',
+      text: 'Close'
+    }
+  }
+
+  const successParams = {
+    token: botToken,
+    view: JSON.stringify(newView),
+    view_id: view.id
+  };
+
+  const slackResponse = await postSlack('views.update', botToken, successParams);
+  if (process.env.DEBUG_LOGS) {
+    const objectified = await slackResponse.json();
+    console.log(objectified);
+  }
+}
+
+
 
 exports.votedSuccesfullyMessage = (voteNumber, category) => ({
   blocks: [

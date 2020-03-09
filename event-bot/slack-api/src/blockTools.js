@@ -94,6 +94,7 @@ exports.giveGameMsg = games => {
 
 
 exports.giveCategoryModal = (category) => {
+  console.log(category);
   return {
     type: "modal",
     callback_id: "setVoteModal",
@@ -137,19 +138,28 @@ exports.giveCategoryModal = (category) => {
 
 
 exports.finishModal = async function (parameterBoundBlockGenerator, view, botToken) {
-  const scoreUpdatedBlocks = parameterBoundBlockGenerator.blocks;
-  view.blocks = {
-    scoreUpdatedBlocks
-  };
+  const scoreUpdatedBlocks = parameterBoundBlockGenerator().blocks;
+  const newView = {
+    type: 'modal',
+    title: view.title,
+    blocks: scoreUpdatedBlocks,
+    clear_on_close: true,
+    close: {
+      type: 'plain_text',
+      text: 'Close'
+    }
+  }
+
   const successParams = {
     token: botToken,
-    view: JSON.stringify(view),
+    view: JSON.stringify(newView),
     view_id: view.id
   };
-  console.log('acking');
+
   const slackResponse = await postSlack('views.update', botToken, successParams);
   if (process.env.DEBUG_LOGS) {
-    console.log(slackResponse);
+    const objectified = await slackResponse.json();
+    console.log(objectified);
   }
 }
 

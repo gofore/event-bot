@@ -29,11 +29,12 @@ exports.handleVotingSaga = async (slackEvent, botToken, action) => {
 
     const modal = {
       ...giveCategoryModal(selectedCategory),
-      private_metadata: {
+      private_metadata: JSON.stringify({
         category: selectedCategory,
         channel_id: channel.id
-      }
+      })
     };
+    console.log(modal);
 
     const params = {
       token: botToken,
@@ -44,7 +45,8 @@ exports.handleVotingSaga = async (slackEvent, botToken, action) => {
     console.log(params);
     const result = await postSlack('views.open', botToken, params);
     if(process.env.DEBUG_LOGS){
-      console.log(result);
+      const objectified = await result.json();
+      console.log(objectified);
     }
 
   } catch (error) {
@@ -75,7 +77,7 @@ exports.voteModalSubmitted = async (slackEvent, botToken) => {
     }
     const categoryId = parseInt(category.id);
     const voteNumber = parseInt(vote);
-    const { userId } = user;
+    const userId = user.id;
     // UPDATE_DATABASE_HERE
     await voteByCategoryId(categoryId, userId, voteNumber);
 

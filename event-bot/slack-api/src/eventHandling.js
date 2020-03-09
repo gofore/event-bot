@@ -103,8 +103,6 @@ const handleRegistreables = async (registereableMessageEvents, slackEvent, botTo
           //   statusCode: 200,
           //   body: {}
           // });
-          // console.log('heavy task');
-          // console.log(response);
 
           await sayEphemeral(`Processing request "${slackEvent.text}".`);
         }

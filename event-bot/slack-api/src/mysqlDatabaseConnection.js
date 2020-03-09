@@ -92,6 +92,23 @@ exports.DatabaseConnection = class DatabaseConnection {
         return this.queryWithPromise(query, queryParams);
     }
 
+    getTeamsAccessToken = (teamId) => {
+        return this.doQuery(`
+            SELECT access_token
+            FROM slack_team
+            WHERE id = ?
+        `, [teamId]);
+    }
+
+
+    registerTeamsAccessToken = (teamId, accessToken) => {
+        return this.doQuery(`
+            INSERT INTO slack_team (id, access_token)
+            VALUES (?, ?)
+                ON DUPLICATE KEY UPDATE access_token = VALUES(access_token)
+        `, [teamId, accessToken]);
+    }
+
 
     findSoonestEvent() {
         return this.doQuery(`

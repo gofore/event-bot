@@ -19,7 +19,6 @@ exports.handleVotingSaga = async (slackEvent, botToken, action) => {
   try {
     const { channel } = slackEvent;
 
-    console.log(channel);
     const { trigger_id } = slackEvent;
     const { selected_option } = action;
     const selectedCategory = {
@@ -34,7 +33,6 @@ exports.handleVotingSaga = async (slackEvent, botToken, action) => {
         channel_id: channel.id
       })
     };
-    console.log(modal);
 
     const params = {
       token: botToken,
@@ -42,7 +40,6 @@ exports.handleVotingSaga = async (slackEvent, botToken, action) => {
       view: JSON.stringify(modal)
     };
 
-    console.log(params);
     const result = await postSlack('views.open', botToken, params);
     if(process.env.DEBUG_LOGS){
       const objectified = await result.json();

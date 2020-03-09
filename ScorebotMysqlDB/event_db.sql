@@ -52,6 +52,11 @@ CREATE TABLE `ending` (
   PRIMARY KEY (`event_id`, `location_from_three_lettered`)
 );
 
+CREATE TABLE `slack_team` (
+  `id` varchar(255) PRIMARY KEY,
+  `access_token` varchar(255)
+);
+
 ALTER TABLE `team` ADD CONSTRAINT `team_event_id` FOREIGN KEY (`event_id`) REFERENCES `event` (`event_id`);
 
 ALTER TABLE `game` ADD CONSTRAINT `game_event_id` FOREIGN KEY (`event_id`) REFERENCES `event` (`event_id`);

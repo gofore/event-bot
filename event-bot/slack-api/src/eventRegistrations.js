@@ -57,7 +57,6 @@ const helpMentioned = async (say, events) => {
 
 
 const checkDBConnectionSuccess = (resultPackage) => {
-  console.log(resultPackage);
   if (!resultPackage.message) {
     return false;
   }
@@ -123,7 +122,6 @@ exports.getEventRegistrations = () => {
         const params = splitMentionMessage(message);
         const teamName = params[1];
         const resultPackage = await registerTeam(requestEventName(), teamName);
-        console.log(resultPackage);
         if (checkDBConnectionSuccess(resultPackage)) {
           await say("Team registered succesfully with name " + teamName);
         } else {
@@ -269,7 +267,6 @@ exports.getEventRegistrations = () => {
         if (votes.length > 0) {
           let answer = 'Votes in all categories:';
           votes.forEach(vote => {
-            console.log(vote);
             answer += `\n    In ${vote.category_name} ${vote.vote} has been voted ${vote.NUM} times`;
           });
           await say(answer);

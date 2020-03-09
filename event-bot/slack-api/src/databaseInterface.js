@@ -8,6 +8,20 @@ exports.initializeConnection = (timeleft) => {
     connection = new DatabaseConnection(timeleft);
 }
 
+
+exports.getAccessToken = async teamId => {
+    const result = await connection.getTeamsAccessToken(teamId);
+    if(result.length === 0) {
+        return null;
+    }
+    return result[0];
+}
+
+exports.registerAccessToken = async (teamId, accessToken) => {
+    return connection.registerTeamsAccessToken(teamId, accessToken);
+}
+
+
 exports.timeUntilEventEnd = async (eventName, optionalLocation) => {
     return connection.queryTimeUntilEventEnd(eventName, optionalLocation)[0].end_time;
 };

@@ -94,7 +94,6 @@ exports.giveGameMsg = games => {
 
 
 exports.giveCategoryModal = (category) => {
-  console.log(category);
   return {
     type: "modal",
     callback_id: "setVoteModal",

@@ -13,7 +13,7 @@ exports.logMessage = function (msg) {
 
 
 exports.isLoggingOn = function () {
-    return Boolean(process.env.DEBUG_LOGS);
+    return process.env.DEBUG_LOGS === true.toString();
 }
 
 

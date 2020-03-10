@@ -20,3 +20,13 @@ Currently uploading to the AWS is done through SAM CLI, but later setup for CDK 
 
 #Techs used
 Slack API, Node, AWS Lambda, AWS RDS, MySQL, SAM CLI
+
+#Information stored and security
+The information in the project is stored in AWS in a secure database only accessible with keys.
+The bot only stores player registered team names and Slack Ids, which could be somewhat thought as personal information.
+
+Slack id is only stored to indicate that the person has voted already once so only a vote number is associated with the id.
+
+Team name can be basically anything so it is possible it also contains personally identifiable information. Team name is only associated with scores registered to the system.
+
+Logging can be disabled with an environment variable and without logging, messages should not be displayed to the user.

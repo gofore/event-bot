@@ -1,5 +1,6 @@
 const mysql = require('mysql');
 const { promisify } = require('util');
+const {log, logError} = require('./logging');
 
 const isLogging = false;
 
@@ -46,20 +47,14 @@ exports.DatabaseConnection = class DatabaseConnection {
         })
 
         this.connection.query[promisify.custom] = (query, queryParams) => new Promise((resolve, reject) => {
-            if (process.env.DEBUG_LOGS) {
-                console.log(`Starting query ${query} with parameters ${queryParams}`);
-            }
+            log(`Starting query ${query} with parameters ${queryParams}`);
             this.connection.query(query, queryParams, (err, results, fields) => {
                 if (err) {
-                    if (process.env.DEBUG_LOGS) {
-                        console.error(err);
-                    }
+                    logError(err);
                     throw err;
                 }
-                else {
-                    if (process.env.DEBUG_LOGS) {
-                        console.log(`Query succeeded, results: ${results}`);
-                    }
+                else {                   
+                    log(`Query succeeded, results: ${results}`);
                     resolve(results);
                 }
             })

@@ -3,25 +3,34 @@
 const { handleEvents, handleIncomingActions, handleViews } = require('./eventHandling');
 const querystring = require('querystring');
 const crypto = require('crypto');
+const {log, isLoggingOn, logMessage} = require('./logging');
 
 const secret = process.env.SLACK_SIGNING_SECRET || '1111111111111111111111111';
 const verificationToken = process.env.VERIFICATION_TOKEN;
 
 module.exports.lambdaHandler = async (data, context) => {
-  if (process.env.DEBUG_LOGS) {
-    console.log(data);
+  
+  let response;
+  try {
+    response = await processConnection(data, context);
+  } catch (error) {
+    log(error);
+    response = {
+      statusCode: '500',
+      body: '{}',
+      // Tell slack we don't want retries, to avoid multiple triggers of this lambda
+      headers: { 'X-Slack-No-Retry': '1' },
+      isBase64Encoded: 'false'
+    };
+    return response;
   }
-  let response = await processConnection(data, context);
-
+  
   if (response) {
-    if (process.env.DEBUG_LOGS) {
-      console.log(response);
-    }
+    log(response);
     return response;
   } else {
     throw new Error('Response was crippled in procession of the message');
   }
-
 }
 
 
@@ -93,9 +102,7 @@ async function handleSlackEvents(data, context, response) {
   else {
     dataObject = JSON.parse(data.body);
   }
-  if (process.env.DEBUG_LOGS) {
-    console.log(dataObject);
-  }
+  log(dataObject);
 
   try {
     if (!('X-Slack-Retry-Num' in data.headers)) {
@@ -178,9 +185,9 @@ async function ackRequest(dataObject, message){
   const { response_url } = dataObject;
   if(Boolean(response_url)){
     const response = await ack(response_url, message);
-    if(process.env.DEBUG_LOGS) {
+    if(isLoggingOn()) {
       const jsonified = await response.json();
-      console.log(jsonified);
+      logMessage(jsonified);
     }
   }
   //TODO: ack view_submission

@@ -17,6 +17,7 @@ const {
 const fetch = require('node-fetch');
 const Slack = require('slack');
 const {postSlack, postOk} = require('./helpers');
+const {logError} = require('./logging');
 
 const scorePattern = /[0-9]+$/;
 
@@ -68,7 +69,7 @@ exports.handleScoringSaga = async (slackEvent, botToken, action) => {
     return postSlack('views.open', botToken, params);
 
   } catch (error) {
-    console.error(error);
+    logError(error);
   }
 }
 
@@ -122,7 +123,7 @@ exports.scoreModalSubmitted = async (slackEvent, botToken) => {
     // Update the message
     await finishModal(scoreUpdatedMsg.bind(this, team.name, game.name, scoreNumber), view, botToken);
   } catch (error) {
-    console.error(error);
+    logError(error);
   }
 };
 

@@ -34,7 +34,7 @@ exports.timeUntilEvent = async (eventName) => {
         connection.endConnection();
         return result[0].starting_date;
     } catch (error) {
-        console.error(error);
+        throw error
     }
 
     return null;

@@ -9,6 +9,7 @@ const {
 const {
   voteByCategoryId } = require("./databaseInterface");
 const { postSlack, postOk } = require('./helpers');
+const {log, logMessage, isLoggingOn, logError} = require('./logging');
 
 const Slack = require('slack');
 const scorePattern = /[0-9]+$/;
@@ -41,13 +42,13 @@ exports.handleVotingSaga = async (slackEvent, botToken, action) => {
     };
 
     const result = await postSlack('views.open', botToken, params);
-    if(process.env.DEBUG_LOGS){
+    if(isLoggingOn()){
       const objectified = await result.json();
-      console.log(objectified);
+      logMessage(objectified);
     }
 
   } catch (error) {
-    console.error(error);
+    logError(error);
   }
 }
 
@@ -80,6 +81,6 @@ exports.voteModalSubmitted = async (slackEvent, botToken) => {
 
     await finishModal(votedSuccesfullyMessage.bind(this, voteNumber, category.name), view, botToken);
   } catch (error) {
-    console.error(error);
+    logError(error);
   }
 };

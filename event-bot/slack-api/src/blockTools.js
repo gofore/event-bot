@@ -155,10 +155,11 @@ exports.finishModal = async function (parameterBoundBlockGenerator, view, botTok
     view_id: view.id
   };
 
+  const {isLoggingOn, logMessage} = require('./logging');
   const slackResponse = await postSlack('views.update', botToken, successParams);
-  if (process.env.DEBUG_LOGS) {
+  if (isLoggingOn()) {
     const objectified = await slackResponse.json();
-    console.log(objectified);
+    logMessage(objectified);
   }
 }
 

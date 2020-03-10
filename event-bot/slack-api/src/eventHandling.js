@@ -12,6 +12,7 @@ const {
   categoryActionId
 } = require("./modalDefinitions");
 
+const {log, logError} = require('./logging');
 
 const asyncForEach = async (array, callback) => {
   for (let index = 0; index < array.length; index++) {
@@ -21,9 +22,7 @@ const asyncForEach = async (array, callback) => {
 
 //This shouldnt be necessary
 const handleAllActionsFromEvent = async (slackEvent, botToken) => {
-  if(process.env.DEBUG_LOGS){
-    console.log(`Handling Action ${slackEvent.toString()}`);
-  }
+  log(`Handling Action ${slackEvent.toString()}`);
   
   const reactToActions = async (slackEvent, botToken) => {
     await asyncForEach(slackEvent.actions, async (action) => {
@@ -41,7 +40,7 @@ const handleAllActionsFromEvent = async (slackEvent, botToken) => {
   try {
     await reactToActions(slackEvent, botToken);
   } catch (error) {
-    console.error(error);
+    logError(error);
   }
 }
 
@@ -102,7 +101,7 @@ const handleRegistreables = async (registereableMessageEvents, slackEvent, botTo
   try {
     await checkForMatchAndRun();
   } catch (error) {
-    console.error(error);
+    logError(error)
   }
 
 };

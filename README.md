@@ -30,3 +30,16 @@ Slack id is only stored to indicate that the person has voted already once so on
 Team name can be basically anything so it is possible it also contains personally identifiable information. Team name is only associated with scores registered to the system.
 
 Logging can be disabled with an environment variable and without logging, messages should not be displayed to the user.
+
+#Environment variables used
+SLACK_BOT_TOKEN,
+SLACK_SIGNING_SECRET,
+VERIFICATION_TOKEN
+DB_PASSWORD
+CLIENT_ID
+CLIENT_SECRET
+DEBUG_LOGS
+
+Most of the variables are related to slack and its functionality and should be directly related to the slack app being built.
+DEBUG_LOGS is used for disabling/enabling debugging for requests to have a better understanding what is happening inside the lambda and RDS.
+

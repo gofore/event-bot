@@ -15,16 +15,10 @@ module.exports.lambdaHandler = async (data, context) => {
     response = await processConnection(data, context);
   } catch (error) {
     log(error);
-    response = {
-      statusCode: '500',
-      body: '{}',
-      // Tell slack we don't want retries, to avoid multiple triggers of this lambda
-      headers: { 'X-Slack-No-Retry': '1' },
-      isBase64Encoded: 'false'
-    };
+    response = getBaseResponse();
+    setResponseStatusCode(response, 500);
     return response;
-  }
-  
+  }  
   if (response) {
     log(response);
     return response;
@@ -35,14 +29,9 @@ module.exports.lambdaHandler = async (data, context) => {
 
 
 async function processConnection(data, context) {
-  let response = {
-    statusCode: '200',
-    body: '{}',
-    // Tell slack we don't want retries, to avoid multiple triggers of this lambda
-    headers: { 'X-Slack-No-Retry': '1' },
-    isBase64Encoded: 'false'
-  };
+  let response = getBaseResponse();
 
+  log(data);
   const { httpMethod } = data;
 
   switch (httpMethod) {
@@ -53,6 +42,10 @@ async function processConnection(data, context) {
       //Authenticating OAuth user
       const parameters = data.queryStringParameters;
 
+      if(!parameters.code){
+        setResponseStatusCode(response, 400);
+        return response;
+      }
       const code = parameters.code;
       const { postFormURLEncoded } = require('./helpers');
       const oauthParams = {
@@ -114,7 +107,7 @@ async function handleSlackEvents(data, context, response) {
           response.body = verifyCall(dataObject);
           break;
         case 'event_callback':
-          //We don't want to handle messages changing events at all at current time
+          //We don't want to handle message changing events at all at current time
           if(dataObject.event && dataObject.event.subtype === 'message_changed'){
             setResponseBodyOK(response);
             return response;
@@ -153,12 +146,23 @@ async function handleSlackEvents(data, context, response) {
 }
 
 
+function getBaseResponse() {
+  return {
+    statusCode: 200,
+    body: "{}",
+    // Tell slack we don't want retries, to avoid multiple triggers of this lambda
+    headers: { "X-Slack-No-Retry": "1" },
+    isBase64Encoded: "false"
+  };
+}
+
+
 function setResponseStatusCode(response, code) {
-  response.statusCode = code.toString();
+  response.statusCode ='"'+ code + '"';
 }
 
 function setResponseBodyOK(response) {
-  response.body = JSON.stringify({ ok: true });
+  response.body = JSON.stringify({ ok: "true" });
 }
 
 function verifySignature(data) {

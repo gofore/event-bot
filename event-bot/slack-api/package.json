@@ -7,7 +7,6 @@
   "author": "Tero Paavolainen",
   "license": "MIT",
   "dependencies": {
-    "dotenv": "^8.2.0",
     "mysql": "^2.18.1",
     "node-fetch": "^2.6.0",
     "querystring": "^0.2.0",
@@ -19,9 +18,10 @@
     "test": "mocha tests/unit/",
     "start": "node .\\src\\app.js",
     "package": "npx webpack --config .\\webpack.config.js && copy .\\.env ..\\build\\.env",
-    "deploy": "sam deploy --template-file ../template.yaml --stack-name event-bot --s3-bucket event-bot-bucket --region eu-west-1"
+    "deploy": "sam deploy --template-file ../template.yaml --capabilities CAPABILITY_IAM --stack-name event-bot --s3-bucket event-bot-bucket --region eu-west-1"
   },
   "devDependencies": {
+    "webpack": "^4.42.0",
     "webpack-cli": "^3.3.11"
   }
 }

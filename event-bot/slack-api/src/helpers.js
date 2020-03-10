@@ -21,6 +21,18 @@ exports.postSlack = (apiAddress, botToken, params) => {
 }
 
 
+exports.ack = (response_url, message) => {
+  return fetch(response_url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json; charset=utf-8'
+    },
+    statusCode: 200,
+    body: JSON.stringify({ text: message })
+  });
+}
+
+
 exports.postOk = (address, botToken) => {
   return fetch(address, {
     method: 'POST',

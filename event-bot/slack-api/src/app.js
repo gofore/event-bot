@@ -107,14 +107,21 @@ async function handleSlackEvents(data, context, response) {
           response.body = verifyCall(dataObject);
           break;
         case 'event_callback':
+          //We don't want to handle messages changing events at all at current time
+          if(dataObject.event && dataObject.event.subtype === 'message_changed'){
+            setResponseBodyOK(response);
+            return response;
+          }
           await handleEvent(dataObject.event, botToken, context);
           setResponseBodyOK(response);
           break;
         case 'block_actions':
+          await ackRequest(dataObject, 'Selection submitted');
           await handleIncomingActions(dataObject, botToken, context);
           setResponseBodyOK(response);;
           break;
         case 'view_submission':
+          await ackRequest(dataObject, 'Handling data');
           await handleViews(dataObject, botToken);
           setResponseBodyOK(response);;
           break;
@@ -166,6 +173,19 @@ function verifySignature(data) {
   return true;
 }
 
+async function ackRequest(dataObject, message){
+  const {ack} = require('./helpers');
+  const { response_url } = dataObject;
+  if(Boolean(response_url)){
+    const response = await ack(response_url, message);
+    if(process.env.DEBUG_LOGS) {
+      const jsonified = await response.json();
+      console.log(jsonified);
+    }
+  }
+  //TODO: ack view_submission
+  
+}
 
 function initializeDBConnection(context) {
   const { initializeConnection } = require('./databaseInterface')

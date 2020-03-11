@@ -43,3 +43,10 @@ DEBUG_LOGS
 Most of the variables are related to slack and its functionality and should be directly related to the slack app being built.
 DEBUG_LOGS is used for disabling/enabling debugging for requests to have a better understanding what is happening inside the lambda and RDS.
 
+#AWS SETUP and costs
+
+Nat gateway generates 90% of all the expenses of the bot so it shall be destroyed until the event actually is closer to happening.
+NAT gateway is roughly 1 dollar daily, while nothing else costs pretty much anything, atlesat until free time runs out.
+NAT details:
+Name		Elastic Ip Addresss	Private IP address	Network interfgace		VPC						Subnet
+event-nat	52.31.237.194		172.31.56.133		eni-05e76f93888c1f8f8	vpc-b33ed0ca | rds-vpc	subnet-08eb871f403c83369 | public-subnet	
